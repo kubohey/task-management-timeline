@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
-import { getDayTextColorClass, getWeekdayLabel } from "./date-utils";
+import { getDayBgColorClass, getDayTextColorClass, getWeekdayLabel } from "./date-utils";
 import { useTimelineDays } from "./timeline-context";
 
 interface MonthGroup {
@@ -80,6 +80,7 @@ export function TimelineHeader() {
               className={cn(
                 "flex shrink-0 flex-col items-center border-r py-1 text-xs",
                 getDayTextColorClass(day),
+                getDayBgColorClass(day),
               )}
               style={{ width: DAY_WIDTH_PX }}
             >

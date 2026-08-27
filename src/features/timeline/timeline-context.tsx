@@ -1,9 +1,18 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode, type RefObject } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { isToday } from "date-fns";
 import { useUiStore } from "@/store/ui-store";
-import { DAY_WIDTH_PX } from "./constants";
+import { DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
 import { getTimelineDays } from "./date-utils";
 
 interface TimelineDaysContextValue {
@@ -77,6 +86,33 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
       };
     }
   }
+
+  // 初回表示時・スケール切替時・「今日」ボタン押下時（scrollToTodaySignalの変化）に、
+  // 今日の日付がカレンダー表示領域のちょうど真ん中あたりに来るようスクロール位置を調整する。
+  // 通常のprev/next移動ではこの信号は変化しないため、意図せず今日へ引き戻されることはない。
+  const scrollToTodaySignal = useUiStore((s) => s.scrollToTodaySignal);
+  const daysRef = useRef(days);
+  daysRef.current = days;
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+    const todayIndex = daysRef.current.findIndex((d) => isToday(d));
+    if (todayIndex === -1) {
+      return;
+    }
+    const visibleCalendarWidth = container.clientWidth - SIDEBAR_WIDTH_PX;
+    if (visibleCalendarWidth <= 0) {
+      return;
+    }
+    const todayCenterPos = todayIndex * DAY_WIDTH_PX + DAY_WIDTH_PX / 2;
+    const targetScrollLeft = todayCenterPos - visibleCalendarWidth / 2;
+    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    container.scrollLeft = Math.min(Math.max(0, targetScrollLeft), maxScrollLeft);
+    // daysはdaysRef経由で最新値を参照するため依存配列には含めない（含めるとprev/next移動のたびに発火してしまう）。
+  }, [scrollToTodaySignal, scrollContainerRef]);
 
   return <TimelineDaysContext value={value}>{children}</TimelineDaysContext>;
 }

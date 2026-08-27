@@ -27,6 +27,7 @@ export function TimelineToolbar() {
   const setTimelineAnchorDate = useUiStore((s) => s.setTimelineAnchorDate);
   const scale = useUiStore((s) => s.timelineScale);
   const setTimelineScale = useUiStore((s) => s.setTimelineScale);
+  const requestScrollToToday = useUiStore((s) => s.requestScrollToToday);
 
   const shift = (direction: 1 | -1) => {
     if (scale === "day") {
@@ -47,16 +48,21 @@ export function TimelineToolbar() {
     } else {
       setTimelineAnchorDate(startOfMonth(now));
     }
+    requestScrollToToday();
   };
 
   const changeScale = (next: TimelineScale) => {
     setTimelineScale(next);
-    // スケール変更時は基準日をそのスケールの区切りに合わせ直す（日表示だけは基準日をそのまま使う）。
+    // スケールを開いたときは常に今日を含む範囲に揃え、今日が画面中央あたりに来るようにする。
+    const now = new Date();
     if (next === "year") {
-      setTimelineAnchorDate(startOfYear(anchorDate));
+      setTimelineAnchorDate(startOfYear(now));
     } else if (next === "month") {
-      setTimelineAnchorDate(startOfMonth(anchorDate));
+      setTimelineAnchorDate(startOfMonth(now));
+    } else {
+      setTimelineAnchorDate(now);
     }
+    requestScrollToToday();
   };
 
   return (

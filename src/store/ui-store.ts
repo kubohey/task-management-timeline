@@ -15,11 +15,18 @@ interface UiState {
   hiddenPhaseStatuses: PhaseStatusFilterKey[];
   /** タイムラインに表示する基準日（月表示ではこの日を含む月を表示、日表示では基準日を中心とした2週間、年表示ではこの日を含む年）。 */
   timelineAnchorDate: Date;
+  /**
+   * インクリメントするたびに「今日の日付を画面中央あたりまでスクロールする」処理を
+   * 発火させるための信号。スクロール処理自体はtimeline-context.tsx側で行う。
+   * 通常のprev/next移動では発火させず、初回表示・スケール切替・「今日」ボタンでのみ発火する。
+   */
+  scrollToTodaySignal: number;
   setTimelineScale: (scale: TimelineScale) => void;
   setFullscreen: (value: boolean) => void;
   setPhaseSortMode: (mode: PhaseSortMode) => void;
   togglePhaseStatusFilter: (key: PhaseStatusFilterKey) => void;
   setTimelineAnchorDate: (date: Date) => void;
+  requestScrollToToday: () => void;
 }
 
 /**
@@ -32,6 +39,7 @@ export const useUiStore = create<UiState>((set) => ({
   phaseSortMode: "manual",
   hiddenPhaseStatuses: [],
   timelineAnchorDate: startOfMonth(new Date()),
+  scrollToTodaySignal: 0,
   setTimelineScale: (timelineScale) => set({ timelineScale }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
   setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
@@ -42,4 +50,5 @@ export const useUiStore = create<UiState>((set) => ({
         : [...state.hiddenPhaseStatuses, key],
     })),
   setTimelineAnchorDate: (timelineAnchorDate) => set({ timelineAnchorDate }),
+  requestScrollToToday: () => set((state) => ({ scrollToTodaySignal: state.scrollToTodaySignal + 1 })),
 }));

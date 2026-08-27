@@ -4,6 +4,7 @@ import {
   endOfMonth,
   endOfYear,
   format,
+  isToday,
   startOfMonth,
   startOfYear,
   subDays,
@@ -61,8 +62,14 @@ export function getDayTextColorClass(date: Date): string {
   return "text-foreground";
 }
 
-/** 日付セル背景色のTailwindクラス。土曜=薄青、日曜・祝日=薄赤。 */
+/**
+ * 日付セル背景色のTailwindクラス。今日＝明るい緑（半透明）、土曜=薄青、日曜・祝日=薄赤。
+ * 今日は他の色分けより優先して目立たせる。
+ */
 export function getDayBgColorClass(date: Date): string {
+  if (isToday(date)) {
+    return "bg-green-400/25";
+  }
   if (date.getDay() === 0 || isJapaneseHoliday(date)) {
     return "bg-red-50";
   }
