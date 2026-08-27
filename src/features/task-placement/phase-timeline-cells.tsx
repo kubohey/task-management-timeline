@@ -2,9 +2,7 @@
 
 import { useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { differenceInCalendarDays, format, isSameDay, parseISO } from "date-fns";
-import { XIcon } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { format, isSameDay, parseISO } from "date-fns";
 import type {
   NoteRichCellValue,
   RowWithCells,
@@ -16,8 +14,7 @@ import { DAY_WIDTH_PX } from "@/features/timeline/constants";
 import { getDayBgColorClass } from "@/features/timeline/date-utils";
 import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { cn } from "@/lib/utils";
-import { TaskMemoPopover } from "./task-memo-popover";
-import { useDeletePlacement } from "./use-task-placement-mutations";
+import { PlacementChip } from "./placement-chip";
 import { useTaskPlacements } from "./use-task-placements";
 
 interface PhaseTimelineCellsProps {
@@ -39,14 +36,12 @@ function DroppableDayCell({ id, className }: { id: string; className: string }) 
 
 /**
  * Phase行のタイムライン部分。日付背景セル（ドロップ先、`day:${phaseId}:${isoDate}`）の
- * 上に、登録済みタスクのチップを重ねて表示する。ホバーでタスク名全文をツールチップ表示、
- * クリックでメモ欄（備考・サブタスク）を開く、ホバー時のみ現れる×ボタンで登録を削除できる
- * （元のPhase表の行は消えない）。docs/spec.md §2.2・§2.3
+ * 上に、登録済みタスクのチップ（`PlacementChip`）を重ねて表示する。
+ * docs/spec.md §2.2・§2.3
  */
 export function PhaseTimelineCells({ phaseId, columns, rows }: PhaseTimelineCellsProps) {
   const days = useTimelineDays();
   const { placements } = useTaskPlacements(phaseId);
-  const deletePlacement = useDeletePlacement();
 
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
   const noteColumnId = columns.find((c) => c.key === "note")?.id;
@@ -67,12 +62,10 @@ export function PhaseTimelineCells({ phaseId, columns, rows }: PhaseTimelineCell
       ))}
       {placements.map((placement) => {
         const start = parseISO(placement.start_date);
-        const end = parseISO(placement.end_date);
         const dayIndex = days.findIndex((d) => isSameDay(d, start));
         if (dayIndex === -1) {
           return null;
         }
-        const spanDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
         const sourceRow = rowsById[placement.source_row_id];
         const label =
           (taskNameColumnId
@@ -80,48 +73,25 @@ export function PhaseTimelineCells({ phaseId, columns, rows }: PhaseTimelineCell
             : undefined) || "(無題のタスク)";
 
         return (
-          <Tooltip key={placement.id}>
-            <TaskMemoPopover
-              rowId={placement.source_row_id}
-              phaseId={phaseId}
-              taskName={label}
-              noteColumnId={noteColumnId}
-              subtaskColumnId={subtaskColumnId}
-              noteValue={
-                noteColumnId
-                  ? (sourceRow?.cells[noteColumnId] as NoteRichCellValue | undefined)
-                  : undefined
-              }
-              subtaskValue={
-                subtaskColumnId
-                  ? (sourceRow?.cells[subtaskColumnId] as SubtaskListCellValue | undefined)
-                  : undefined
-              }
-            >
-              <TooltipTrigger asChild>
-                <div
-                  className="group absolute top-0.5 bottom-0.5 flex items-center gap-0.5 overflow-hidden rounded bg-primary px-1 text-[11px] text-primary-foreground"
-                  style={{ left: dayIndex * DAY_WIDTH_PX, width: spanDays * DAY_WIDTH_PX }}
-                >
-                  <span className="truncate">{label}</span>
-                  <button
-                    type="button"
-                    className="hidden shrink-0 rounded hover:bg-primary-foreground/20 group-hover:block"
-                    title="登録を削除"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm("このタイムライン登録を削除しますか？（元のタスクは残ります）")) {
-                        deletePlacement.mutate({ id: placement.id, phaseId });
-                      }
-                    }}
-                  >
-                    <XIcon className="size-3" />
-                  </button>
-                </div>
-              </TooltipTrigger>
-            </TaskMemoPopover>
-            <TooltipContent>{label}</TooltipContent>
-          </Tooltip>
+          <PlacementChip
+            key={placement.id}
+            placement={placement}
+            phaseId={phaseId}
+            dayIndex={dayIndex}
+            label={label}
+            noteColumnId={noteColumnId}
+            subtaskColumnId={subtaskColumnId}
+            noteValue={
+              noteColumnId
+                ? (sourceRow?.cells[noteColumnId] as NoteRichCellValue | undefined)
+                : undefined
+            }
+            subtaskValue={
+              subtaskColumnId
+                ? (sourceRow?.cells[subtaskColumnId] as SubtaskListCellValue | undefined)
+                : undefined
+            }
+          />
         );
       })}
     </div>

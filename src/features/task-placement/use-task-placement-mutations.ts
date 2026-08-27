@@ -25,3 +25,12 @@ export function useDeletePlacement() {
     onSuccess: (_data, vars) => invalidate(vars.phaseId),
   });
 }
+
+export function useUpdatePlacement() {
+  const invalidate = useInvalidatePlacements();
+  return useMutation({
+    mutationFn: (vars: { id: string; phaseId: string; patch: api.TaskPlacementPatch }) =>
+      api.updateTaskPlacement(vars.id, vars.patch),
+    onSuccess: (_data, vars) => invalidate(vars.phaseId),
+  });
+}

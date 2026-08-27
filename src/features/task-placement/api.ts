@@ -40,3 +40,12 @@ export async function deleteTaskPlacement(id: string) {
   const { error } = await supabase.from("task_placements").delete().eq("id", id);
   if (error) throw error;
 }
+
+export type TaskPlacementPatch = Partial<Pick<TaskPlacementRecord, "start_date" | "end_date">>;
+
+/** 予定の日付範囲を更新する（タイムライン上でのドラッグリサイズ用）。 */
+export async function updateTaskPlacement(id: string, patch: TaskPlacementPatch) {
+  const supabase = createClient();
+  const { error } = await supabase.from("task_placements").update(patch).eq("id", id);
+  if (error) throw error;
+}
