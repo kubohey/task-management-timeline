@@ -117,7 +117,7 @@ function DayCell({ id, date, className, phaseId, columns, sortOrder }: DayCellPr
  * docs/spec.md §2.2・§2.3
  */
 export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseTimelineCellsProps) {
-  const days = useTimelineDays();
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth } = useTimelineDays();
   const { placements } = useTaskPlacements(phaseId);
 
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
@@ -130,7 +130,8 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
 
   return (
     <div className="relative flex">
-      {days.map((day) => (
+      {leadingWidth > 0 && <div className="shrink-0" style={{ width: leadingWidth }} />}
+      {days.slice(startIndex, endIndex + 1).map((day) => (
         <DayCell
           key={day.toISOString()}
           id={`day:${phaseId}:${format(day, "yyyy-MM-dd")}`}
@@ -141,6 +142,7 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
           sortOrder={rows.length}
         />
       ))}
+      {trailingWidth > 0 && <div className="shrink-0" style={{ width: trailingWidth }} />}
       {placements.map((placement) => {
         const start = parseISO(placement.start_date);
         const dayIndex = days.findIndex((d) => isSameDay(d, start));

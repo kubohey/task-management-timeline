@@ -10,16 +10,17 @@ import { useTimelineDays } from "./timeline-context";
  * であることで、左上のコーナーが常に画面に固定される（2軸固定、docs/spec.md §6）。
  */
 export function TimelineHeader() {
-  const days = useTimelineDays();
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth } = useTimelineDays();
 
   return (
-    <div className="sticky top-0 z-20 flex items-stretch border-b bg-background">
+    <div className="sticky top-0 z-20 flex w-max items-stretch border-b bg-background">
       <div
         className="sticky left-0 z-20 shrink-0 border-r bg-background"
         style={{ width: SIDEBAR_WIDTH_PX }}
       />
       <div className="flex">
-        {days.map((day) => (
+        {leadingWidth > 0 && <div className="shrink-0" style={{ width: leadingWidth }} />}
+        {days.slice(startIndex, endIndex + 1).map((day) => (
           <div
             key={day.toISOString()}
             className={cn(
@@ -32,6 +33,7 @@ export function TimelineHeader() {
             <span>{getWeekdayLabel(day)}</span>
           </div>
         ))}
+        {trailingWidth > 0 && <div className="shrink-0" style={{ width: trailingWidth }} />}
       </div>
     </div>
   );

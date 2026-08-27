@@ -29,8 +29,9 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
   const deleteProject = useDeleteProject();
   const createPhase = useCreatePhase();
   const phaseSortMode = useUiStore((s) => s.phaseSortMode);
+  const hiddenPhaseStatuses = useUiStore((s) => s.hiddenPhaseStatuses);
 
-  const phases =
+  const sortedPhases =
     phaseSortMode === "status"
       ? [...project.phases].sort(
           (a, b) =>
@@ -39,11 +40,15 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
         )
       : project.phases;
 
+  const phases = sortedPhases.filter(
+    (phase) => !hiddenPhaseStatuses.includes(phase.status ?? "none"),
+  );
+
   const phaseLabelWidth = useUniformLabelWidth(phases.map((p) => p.name));
 
   return (
     <div>
-      <div className="flex items-stretch">
+      <div className="flex w-max items-stretch">
         <div
           className="sticky left-0 z-10 flex shrink-0 items-center gap-1.5 px-2 py-1.5"
           style={{

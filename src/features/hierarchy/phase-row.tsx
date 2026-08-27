@@ -80,7 +80,7 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
       onDragCancel={() => setDraggingTaskName(null)}
     >
       <div>
-        <div className="flex items-stretch">
+        <div className="flex w-max items-stretch">
           <div
             className="sticky left-0 z-10 flex shrink-0 items-center gap-2 border border-transparent bg-background px-2 py-1.5 hover:border-border"
             style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}

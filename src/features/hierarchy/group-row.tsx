@@ -45,7 +45,7 @@ export function GroupRow({ group, depth, labelWidth, userId, allowSubgroup }: Gr
 
   return (
     <div>
-      <div className="flex items-stretch">
+      <div className="flex w-max items-stretch">
         <div
           className="sticky left-0 z-10 flex shrink-0 items-center gap-1.5 px-2 py-1.5"
           style={{

@@ -1,5 +1,15 @@
-import { eachDayOfInterval, endOfMonth, format, startOfMonth } from "date-fns";
+import {
+  addDays,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfYear,
+  format,
+  startOfMonth,
+  startOfYear,
+  subDays,
+} from "date-fns";
 import holidayJp from "holiday-jp";
+import type { TimelineScale } from "@/store/ui-store";
 
 /**
  * 指定日を含む月の全日付を返す（月表示ガントチャート用）。
@@ -7,6 +17,30 @@ import holidayJp from "holiday-jp";
  */
 export function getMonthDays(anchor: Date): Date[] {
   return eachDayOfInterval({ start: startOfMonth(anchor), end: endOfMonth(anchor) });
+}
+
+/** 基準日を中心とした前後2週間（計14日）の日付を返す（日表示用）。 */
+export function getTwoWeekDays(anchor: Date): Date[] {
+  return eachDayOfInterval({ start: subDays(anchor, 7), end: addDays(anchor, 6) });
+}
+
+/**
+ * 基準日を含む年の全日付を返す（年表示用）。
+ * 列数が非常に多くなるため、実際の描画はtimeline-context.tsxで仮想化する。
+ */
+export function getYearDays(anchor: Date): Date[] {
+  return eachDayOfInterval({ start: startOfYear(anchor), end: endOfYear(anchor) });
+}
+
+/** 表示スケールに応じたタイムラインの日付列を返す。 */
+export function getTimelineDays(scale: TimelineScale, anchor: Date): Date[] {
+  if (scale === "day") {
+    return getTwoWeekDays(anchor);
+  }
+  if (scale === "year") {
+    return getYearDays(anchor);
+  }
+  return getMonthDays(anchor);
 }
 
 /** 指定日が日本の祝日かどうか（holiday-jp）。 */
@@ -48,4 +82,15 @@ export function getWeekdayLabel(date: Date): string {
 /** ツールバーに表示する月ラベル（例：「2026年8月」）。 */
 export function formatMonthLabel(date: Date): string {
   return format(date, "yyyy年M月");
+}
+
+/** ツールバーに表示する、表示スケールに応じたラベル（月：「2026年8月」/日：「8/20 〜 9/2」/年：「2026年」）。 */
+export function formatAnchorLabel(scale: TimelineScale, anchor: Date): string {
+  if (scale === "year") {
+    return format(anchor, "yyyy年");
+  }
+  if (scale === "day") {
+    return `${format(subDays(anchor, 7), "M/d")} 〜 ${format(addDays(anchor, 6), "M/d")}`;
+  }
+  return formatMonthLabel(anchor);
 }

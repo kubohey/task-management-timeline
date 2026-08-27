@@ -11,17 +11,19 @@ import { useTimelineDays } from "./timeline-context";
  * タスクバーの表示・ドラッグ登録はPhase 3/4で追加する。
  */
 export function CalendarRowCells() {
-  const days = useTimelineDays();
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth } = useTimelineDays();
 
   return (
     <div className="flex">
-      {days.map((day) => (
+      {leadingWidth > 0 && <div className="shrink-0" style={{ width: leadingWidth }} />}
+      {days.slice(startIndex, endIndex + 1).map((day) => (
         <div
           key={day.toISOString()}
           className={cn("shrink-0 border-r", getDayBgColorClass(day))}
           style={{ width: DAY_WIDTH_PX }}
         />
       ))}
+      {trailingWidth > 0 && <div className="shrink-0" style={{ width: trailingWidth }} />}
     </div>
   );
 }
