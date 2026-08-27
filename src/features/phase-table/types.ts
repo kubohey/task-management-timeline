@@ -1,3 +1,5 @@
+import type { JSONContent } from "@tiptap/react";
+
 export type TableColumnType = "checkbox" | "text" | "note_rich" | "subtask_list";
 
 export interface TableColumnRecord {
@@ -45,11 +47,17 @@ export interface SubtaskListCellValue {
   items: SubtaskItem[];
 }
 
-/**
- * table_cells.value（jsonb）の形。列のtypeによって形が決まる。
- * note_richはPhase 5（Tiptap）まではtextと同じ形で扱う。
- */
-export type CellValue = CheckboxCellValue | TextCellValue | SubtaskListCellValue;
+export interface NoteRichCellValue {
+  doc: JSONContent;
+}
+
+/** 内容のないTiptapドキュメント（空段落ひとつ）。新規セル・空セルの初期値に使う。 */
+export function emptyDoc(): JSONContent {
+  return { type: "doc", content: [{ type: "paragraph" }] };
+}
+
+/** table_cells.value（jsonb）の形。列のtypeによって形が決まる。 */
+export type CellValue = CheckboxCellValue | TextCellValue | SubtaskListCellValue | NoteRichCellValue;
 
 /**
  * UI表示用に、1行分のセルを列idでまとめたもの。
@@ -67,8 +75,9 @@ export function defaultCellValue(type: TableColumnType): CellValue {
       return { checked: false };
     case "subtask_list":
       return { items: [] };
-    case "text":
     case "note_rich":
+      return { doc: emptyDoc() };
+    case "text":
       return { text: "" };
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -17,7 +17,6 @@ import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { PhaseTableDialog } from "@/features/phase-table/phase-table-dialog";
 import { PhaseTablePanel } from "@/features/phase-table/phase-table-panel";
 import { usePhaseTableData } from "@/features/phase-table/use-phase-table-data";
-import type { TextCellValue } from "@/features/phase-table/types";
 import { PhaseTimelineCells } from "@/features/task-placement/phase-timeline-cells";
 import { useCreatePlacement } from "@/features/task-placement/use-task-placement-mutations";
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
@@ -46,16 +45,6 @@ export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
 
   // タイムラインのチップ表示にはテーブルの開閉に関わらず列/行/セルが必要なため常時取得する。
   const { columns, rows, isLoading, isError } = usePhaseTableData(phase.id, true);
-  const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
-  const taskNameByRowId = useMemo(() => {
-    if (!taskNameColumnId) return {};
-    return Object.fromEntries(
-      rows.map((r) => [
-        r.row.id,
-        (r.cells[taskNameColumnId] as TextCellValue | undefined)?.text ?? "",
-      ]),
-    );
-  }, [rows, taskNameColumnId]);
 
   const createPlacement = useCreatePlacement();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -152,7 +141,7 @@ export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
               </Button>
             </div>
           </div>
-          <PhaseTimelineCells phaseId={phase.id} taskNameByRowId={taskNameByRowId} />
+          <PhaseTimelineCells phaseId={phase.id} columns={columns} rows={rows} />
         </div>
         {tableOpen && (
           <div

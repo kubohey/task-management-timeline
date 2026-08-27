@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: in-progress (Phase 4完了)
+status: in-progress (Phase 5完了、DBマイグレーション適用待ち)
 tags: [spec, task-management-timeline]
 ---
 
@@ -233,7 +233,7 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 
 - [ ] 日表示／年表示の切替
 - [ ] 全画面表示
-- [ ] メモ欄のリッチテキスト編集（MVPでは簡易テキストエリアで代替）
+- [x] メモ欄のリッチテキスト編集（Tiptap、Phase 5で実装）
 - [ ] コピー時の `- [ ]` → `・` 変換（エクスポート）
 - [ ] 列自体の追加
 - [ ] パフォーマンス最適化（Virtual化の高度化）
@@ -262,3 +262,5 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-27 | Phaseテーブルにインライン表示（カレンダーと並べて表示）を追加、単体ダイアログ表示と共存。列幅のドラッグ調整（TanStack Table標準機能、幅はDBに永続化）を前倒し実装。ページ全体の高さ制約が崩れていたためタイムライン日付ヘッダーのスクロール追従が効いていなかった不具合を修正（body/mainのoverflow設定） |
 | 2026-08-27 | Phase 4（ドラッグ&カレンダー登録）実装。dnd-kitでPhase内タスク表の行をタイムラインの日付セルへドラッグ登録、ホバーでタスク名全文をツールチップ表示、ホバー時の×ボタンで登録削除に対応。ドラッグはインライン表示（カレンダーと並べて見える表示）からのみ可能（単体ダイアログはタイムラインが隠れるため対象外） |
 | 2026-08-27 | 「タイムラインに登録済みのタスクをドラッグで複数日に引き伸ばす」機能をPhase 6（表の高度化）に追加（実装は見送り、ユーザー確認済み） |
+| 2026-08-27 | インライン表示のPhaseテーブルが横スクロールで画面外に流れる不具合を修正（sticky left-0を追加） |
+| 2026-08-27 | Phase 5（メモ欄）実装。備考列をnote_rich型（Tiptap JSON）に変更し、太字・箇条書き・チェックリスト・ハイライトに対応。タイムライン上のタスクをクリックするとメモ欄（備考＋サブタスク）がポップオーバーで開く。DBマイグレーション（supabase/migrations/0003_note_rich_type.sql）はユーザー側で適用が必要 |

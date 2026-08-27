@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ParsedObsidianRow } from "./obsidian-import";
-import { defaultCellValue } from "./types";
+import { defaultCellValue, emptyDoc } from "./types";
 import type { CellValue, TableColumnRecord, TableRowRecord } from "./types";
 
 // ============================================================
@@ -152,7 +152,15 @@ export async function importObsidianRows(input: {
       cells.push({ row_id: rowId, column_id: taskNameColumn.id, value: { text: parsed.taskName } });
     }
     if (noteColumn) {
-      cells.push({ row_id: rowId, column_id: noteColumn.id, value: { text: parsed.note } });
+      const noteValue: CellValue =
+        noteColumn.type === "note_rich"
+          ? {
+              doc: parsed.note
+                ? { ...emptyDoc(), content: [{ type: "paragraph", content: [{ type: "text", text: parsed.note }] }] }
+                : emptyDoc(),
+            }
+          : { text: parsed.note };
+      cells.push({ row_id: rowId, column_id: noteColumn.id, value: noteValue });
     }
     if (subtaskColumn) {
       cells.push({

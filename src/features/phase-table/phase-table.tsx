@@ -8,12 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DraggableRowHandle } from "@/features/task-placement/draggable-row-handle";
 import { cn } from "@/lib/utils";
 import { CheckboxCell } from "./cells/checkbox-cell";
+import { NoteRichCell } from "./cells/note-rich-cell";
 import { SubtaskListCell } from "./cells/subtask-list-cell";
 import { TextCell } from "./cells/text-cell";
 import { useDeleteRow, useUpdateCell, useUpdateColumn } from "./use-phase-table-mutations";
 import type {
   CellValue,
   CheckboxCellValue,
+  NoteRichCellValue,
   RowWithCells,
   SubtaskListCellValue,
   TableColumnRecord,
@@ -69,8 +71,11 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
                 />
               );
             case "text":
-            case "note_rich":
               return <TextCell value={value as TextCellValue | undefined} onChange={onChange} />;
+            case "note_rich":
+              return (
+                <NoteRichCell value={value as NoteRichCellValue | undefined} onChange={onChange} />
+              );
           }
         },
       }),
