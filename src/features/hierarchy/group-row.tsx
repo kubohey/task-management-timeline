@@ -9,6 +9,7 @@ import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
 import { CalendarRowCells } from "@/features/timeline/calendar-row-cells";
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
+import { useTimelineDays } from "@/features/timeline/timeline-context";
 import type { GroupNode } from "./build-tree";
 import { INDENT_STEP_PX } from "./constants";
 import { ProjectRow } from "./project-row";
@@ -42,10 +43,17 @@ export function GroupRow({ group, depth, labelWidth, userId, allowSubgroup }: Gr
     { className: "font-semibold" },
   );
   const projectLabelWidth = useUniformLabelWidth(group.projects.map((p) => p.name));
+  const { totalWidth } = useTimelineDays();
 
   return (
     <div>
-      <div className="flex w-max items-stretch">
+      {/*
+        行の幅を明示的に指定する。w-max（width:auto）だけに頼ると、この行が属する
+        フレックスコンテナがビューポート幅に収まってしまい、sticky領域の可動域が
+        ビューポート幅に制限される不具合があったため（docs/spec.md Phase7）。
+        totalWidthはスクロール状態に依存しない値なので、スクロール中でも常に正しい幅を保つ。
+      */}
+      <div className="flex items-stretch" style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}>
         <div
           className="sticky left-0 z-10 flex shrink-0 items-center gap-1.5 px-2 py-1.5"
           style={{

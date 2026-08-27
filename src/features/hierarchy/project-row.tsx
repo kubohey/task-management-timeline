@@ -9,6 +9,7 @@ import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
 import { CalendarRowCells } from "@/features/timeline/calendar-row-cells";
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
+import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { useUiStore } from "@/store/ui-store";
 import type { ProjectNode } from "./build-tree";
 import { INDENT_STEP_PX } from "./constants";
@@ -45,10 +46,12 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
   );
 
   const phaseLabelWidth = useUniformLabelWidth(phases.map((p) => p.name));
+  const { totalWidth } = useTimelineDays();
 
   return (
     <div>
-      <div className="flex w-max items-stretch">
+      {/* 行の幅を明示的に指定する理由はgroup-row.tsxのコメント参照。 */}
+      <div className="flex items-stretch" style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}>
         <div
           className="sticky left-0 z-10 flex shrink-0 items-center gap-1.5 px-2 py-1.5"
           style={{

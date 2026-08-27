@@ -20,6 +20,7 @@ import { usePhaseTableData } from "@/features/phase-table/use-phase-table-data";
 import { PhaseTimelineCells } from "@/features/task-placement/phase-timeline-cells";
 import { useCreatePlacement } from "@/features/task-placement/use-task-placement-mutations";
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
+import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { cn } from "@/lib/utils";
 import { INDENT_STEP_PX } from "./constants";
 import { StatusSelect } from "./status-select";
@@ -50,6 +51,7 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
   const { columns, rows, isLoading, isError } = usePhaseTableData(phase.id, true);
 
   const createPlacement = useCreatePlacement();
+  const { totalWidth } = useTimelineDays();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [draggingTaskName, setDraggingTaskName] = useState<string | null>(null);
 
@@ -80,7 +82,8 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
       onDragCancel={() => setDraggingTaskName(null)}
     >
       <div>
-        <div className="flex w-max items-stretch">
+        {/* 行の幅を明示的に指定する理由はgroup-row.tsxのコメント参照。 */}
+        <div className="flex items-stretch" style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}>
           <div
             className="sticky left-0 z-10 flex shrink-0 items-center gap-2 border border-transparent bg-background px-2 py-1.5 hover:border-border"
             style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}

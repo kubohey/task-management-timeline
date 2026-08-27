@@ -16,6 +16,13 @@ interface TimelineDaysContextValue {
   leadingWidth: number;
   /** endIndexより後の非表示分を埋めるスペーサー幅（px）。 */
   trailingWidth: number;
+  /**
+   * カレンダー部分（サイドバーを除く）の総幅（px）＝days.length×DAY_WIDTH_PX。
+   * leadingWidth+可視セル分+trailingWidthの合計と数学的には一致するはずだが、
+   * 各行のsticky領域の基準幅にはスクロール状態に依存しないこちらの値を使い、
+   * スクロール中の仮想化再計算タイミングとは無関係に常に正しい幅を保証する。
+   */
+  totalWidth: number;
 }
 
 const TimelineDaysContext = createContext<TimelineDaysContextValue | null>(null);
@@ -47,14 +54,16 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
     overscan: 14,
   });
 
+  const totalWidth = days.length * DAY_WIDTH_PX;
+
   // virtualizerの戻り値はスクロールのたびに変わるためuseMemoでの恩恵は薄く、素直に毎レンダー計算する。
   let value: TimelineDaysContextValue;
   if (scale !== "year") {
-    value = { days, startIndex: 0, endIndex: days.length - 1, leadingWidth: 0, trailingWidth: 0 };
+    value = { days, startIndex: 0, endIndex: days.length - 1, leadingWidth: 0, trailingWidth: 0, totalWidth };
   } else {
     const virtualItems = virtualizer.getVirtualItems();
     if (virtualItems.length === 0) {
-      value = { days, startIndex: 0, endIndex: -1, leadingWidth: 0, trailingWidth: days.length * DAY_WIDTH_PX };
+      value = { days, startIndex: 0, endIndex: -1, leadingWidth: 0, trailingWidth: totalWidth, totalWidth };
     } else {
       const first = virtualItems[0];
       const last = virtualItems[virtualItems.length - 1];
@@ -63,7 +72,8 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
         startIndex: first.index,
         endIndex: last.index,
         leadingWidth: first.start,
-        trailingWidth: virtualizer.getTotalSize() - last.end,
+        trailingWidth: totalWidth - last.end,
+        totalWidth,
       };
     }
   }
