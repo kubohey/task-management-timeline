@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: in-progress (Phase 7完了)
+status: in-progress (Phase 7完了、Phase 8「デプロイ・安定化」未着手)
 tags: [spec, task-management-timeline]
 ---
 
@@ -236,9 +236,9 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 - [x] 行→タイムラインへのドラッグ登録（ツールチップでタスク名フル表示）
 - [x] statusタグの付与とソート（当初はactive/always/next固定、Phase7以降ユーザー定義の可変な一覧に変更）
 - [x] 土日祝の色分け
-- [ ] ログイン（サインアップ無効化）
-- [ ] RLSによるデータ保護
-- [ ] 主要テーブルのRealtime同期
+- [x] ログイン（サインアップ無効化）
+- [x] RLSによるデータ保護
+- [x] 主要テーブルのRealtime同期
 
 ### MVP後回し（Phase 2以降）
 
@@ -281,3 +281,4 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-27 | Phase 7（表示切替・仕上げ）実装。表示スケールに日（基準日中心の2週間）・年（基準日を含む年の全日付）を追加し月と切替可能に、ツールバーのラベル・前後移動・「今日」ボタンもスケールに追従。年表示は列数が365〜366と多くなるためTanStack Virtualで横方向に仮想化し、実際にDOMへ描画する日付を画面内＋オーバースキャン分に限定（タイムライン全体のcontextから日付の可視範囲を配信）。全画面表示（Fullscreen API、Escでの終了にも同期）、Phaseのstatusによる表示フィルタ（並び替えとは別に、非表示にするstatusをトグルできるバッジUI）を追加。あわせて、Group/Project/Phase各行の横スクロール用コンテナ（`flex items-stretch`）がデフォルトで`width:auto`のためビューポート幅に収まってしまい、年表示のように総幅がビューポートを超えて実際にスクロールが発生する場面でサイドバーのsticky固定が途中から効かなくなる不具合を発見・修正（`w-max`を付与してコンテンツ全幅に広げる）。月表示までは総幅がビューポート内に収まっていたため表面化していなかった潜在バグ |
 | 2026-08-28 | Phase7続き。sticky固定の幅を仮想化の計算値ではなくスクロール状態に依存しない固定値から明示的に指定するよう変更し、スクロール中に一瞬崩れる余地を排除。年表示・日表示で月をまたぐ際に迷子にならないよう、タイムラインヘッダーに月ラベル行を追加。日/月/年いずれの表示を開いた時・スケール切替時・「今日」ボタン押下時にも今日の日付がカレンダー中央付近に来るようスクロール位置を自動調整し（通常のprev/next移動では発火しない）、今日の日付列を明るい緑・半透明でハイライトするように変更 |
 | 2026-08-28 | ユーザー要望により、Phaseのstatusを固定3値（active/always/next）から、ユーザーが任意の数だけ追加・削除・名前変更・色変更・並び替えできる可変な一覧に変更。新設した`phase_statuses`テーブル（ユーザーごと）への参照として`phases.status_id`を追加し、旧`status`列（text + check制約）は廃止。ツールバーに「status管理」ダイアログを新設（DBマイグレーション`supabase/migrations/0004_phase_statuses.sql`はユーザー側で適用が必要、既存データは自動移行される） |
+| 2026-08-28 | MVP範囲のチェックリストが実態とずれていたため修正：ログイン・RLS・Realtime同期はPhase 0（基盤構築）の時点で実装済みだったが未チェックのままだったので反映。Phase 0〜7が完了し、残るはPhase 8（デプロイ・安定化：Vercelデプロイ、簡易テスト）のみの状態 |
