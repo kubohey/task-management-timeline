@@ -126,6 +126,7 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
               phase={phase}
               depth={depth + 1}
               labelWidth={phaseLabelWidth}
+              projectColor={project.color}
             />
           ))}
         </div>

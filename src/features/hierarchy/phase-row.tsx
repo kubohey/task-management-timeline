@@ -20,6 +20,7 @@ import { usePhaseTableData } from "@/features/phase-table/use-phase-table-data";
 import { PhaseTimelineCells } from "@/features/task-placement/phase-timeline-cells";
 import { useCreatePlacement } from "@/features/task-placement/use-task-placement-mutations";
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
+import { cn } from "@/lib/utils";
 import { INDENT_STEP_PX } from "./constants";
 import { StatusSelect } from "./status-select";
 import { useDeletePhase, useUpdatePhase } from "./use-hierarchy-mutations";
@@ -29,6 +30,8 @@ interface PhaseRowProps {
   phase: PhaseRecord;
   depth: number;
   labelWidth: number;
+  /** タイムライン上のタスクチップの色をこのProjectの色に揃える。 */
+  projectColor: string | null;
 }
 
 /**
@@ -36,7 +39,7 @@ interface PhaseRowProps {
  * タスク表はカレンダーと並べて見えるインライン展開、または単体ダイアログの2通りで開ける。
  * インライン表示の表からタイムラインの日付セルへ行をドラッグ登録できる（docs/spec.md §2.2）。
  */
-export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
+export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowProps) {
   const [editing, setEditing] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
   const [tableDialogOpen, setTableDialogOpen] = useState(false);
@@ -141,7 +144,12 @@ export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
               </Button>
             </div>
           </div>
-          <PhaseTimelineCells phaseId={phase.id} columns={columns} rows={rows} />
+          <PhaseTimelineCells
+            phaseId={phase.id}
+            columns={columns}
+            rows={rows}
+            chipColor={projectColor}
+          />
         </div>
         {tableOpen && (
           <div
@@ -170,7 +178,13 @@ export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
       </div>
       <DragOverlay>
         {draggingTaskName && (
-          <div className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground shadow-md">
+          <div
+            className={cn(
+              "rounded px-2 py-1 text-xs shadow-md",
+              projectColor ? "text-foreground" : "bg-primary text-primary-foreground",
+            )}
+            style={projectColor ? { backgroundColor: projectColor } : undefined}
+          >
             {draggingTaskName}
           </div>
         )}

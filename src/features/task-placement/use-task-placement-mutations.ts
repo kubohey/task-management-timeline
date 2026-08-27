@@ -18,6 +18,22 @@ export function useCreatePlacement() {
   });
 }
 
+/**
+ * タイムライン上での手動追加。Phase表の行の作成・セル作成も伴うため、
+ * taskPlacementsに加えてtableRows/tableCellsのキャッシュも無効化する。
+ */
+export function useCreatePlacementWithNewRow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.createPlacementWithNewRow,
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ["taskPlacements", vars.phaseId] });
+      void queryClient.invalidateQueries({ queryKey: ["tableRows", vars.phaseId] });
+      void queryClient.invalidateQueries({ queryKey: ["tableCells", vars.phaseId] });
+    },
+  });
+}
+
 export function useDeletePlacement() {
   const invalidate = useInvalidatePlacements();
   return useMutation({

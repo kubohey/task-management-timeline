@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
+import { defaultCellValue } from "@/features/phase-table/types";
+import type { TableColumnRecord } from "@/features/phase-table/types";
 import type { TaskPlacementRecord } from "./types";
 
 /**
@@ -33,6 +35,44 @@ export async function insertTaskPlacement(input: {
     end_date: input.date,
   });
   if (error) throw error;
+}
+
+/**
+ * タイムライン上での手動追加（表からのドラッグの逆方向）。Phase表に新しい行を1件作成し、
+ * タスク名セルに入力値を入れ、その行を参照する予定をクリックした日付に登録する。
+ * 表の行への参照のみで実体は複製しないため、Phase表側にもそのまま表示される
+ * （docs/spec.md §2.2の「行→カレンダー」の逆方向）。
+ */
+export async function createPlacementWithNewRow(input: {
+  phaseId: string;
+  columns: TableColumnRecord[];
+  taskName: string;
+  date: string;
+  sortOrder: number;
+}) {
+  const supabase = createClient();
+  const { data: row, error: rowError } = await supabase
+    .from("table_rows")
+    .insert({ phase_id: input.phaseId, sort_order: input.sortOrder })
+    .select("id")
+    .single();
+  if (rowError) throw rowError;
+
+  const taskNameColumn = input.columns.find((c) => c.key === "task_name");
+  const cells = input.columns.map((column) => ({
+    row_id: row.id as string,
+    column_id: column.id,
+    value: column.id === taskNameColumn?.id ? { text: input.taskName } : defaultCellValue(column.type),
+  }));
+  const { error: cellsError } = await supabase.from("table_cells").insert(cells);
+  if (cellsError) throw cellsError;
+
+  const { error: placementError } = await supabase.from("task_placements").insert({
+    source_row_id: row.id,
+    start_date: input.date,
+    end_date: input.date,
+  });
+  if (placementError) throw placementError;
 }
 
 export async function deleteTaskPlacement(id: string) {

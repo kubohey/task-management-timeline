@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { NoteRichCellValue, SubtaskListCellValue } from "@/features/phase-table/types";
 import { DAY_WIDTH_PX } from "@/features/timeline/constants";
+import { cn } from "@/lib/utils";
 import { TaskMemoPopover } from "./task-memo-popover";
 import type { TaskPlacementRecord } from "./types";
 import { useDeletePlacement, useUpdatePlacement } from "./use-task-placement-mutations";
@@ -16,6 +17,8 @@ interface PlacementChipProps {
   /** 表示中の月の日付一覧における開始日のインデックス。 */
   dayIndex: number;
   label: string;
+  /** このPhaseが属するProjectの色。未設定の場合は既定のプライマリカラーを使う。 */
+  color: string | null;
   noteColumnId?: string;
   subtaskColumnId?: string;
   noteValue?: NoteRichCellValue;
@@ -34,6 +37,7 @@ export function PlacementChip({
   phaseId,
   dayIndex,
   label,
+  color,
   noteColumnId,
   subtaskColumnId,
   noteValue,
@@ -116,21 +120,25 @@ export function PlacementChip({
       >
         <TooltipTrigger asChild>
           <div
-            className="group absolute top-0.5 bottom-0.5 flex items-center overflow-hidden rounded bg-primary px-1.5 text-[11px] text-primary-foreground"
+            className={cn(
+              "group absolute top-0.5 bottom-0.5 flex items-center overflow-hidden rounded px-1.5 text-[11px]",
+              color ? "text-foreground" : "bg-primary text-primary-foreground",
+            )}
             style={{
               left: previewDayIndex * DAY_WIDTH_PX,
               width: previewSpanDays * DAY_WIDTH_PX,
+              backgroundColor: color ?? undefined,
             }}
           >
             <div
-              className="absolute top-0 left-0 h-full w-1.5 cursor-ew-resize opacity-0 group-hover:opacity-100 group-hover:bg-primary-foreground/30"
+              className="absolute top-0 left-0 h-full w-1.5 cursor-ew-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
               onPointerDown={startResize("start")}
               onClick={(e) => e.stopPropagation()}
             />
             <span className="flex-1 truncate">{label}</span>
             <button
               type="button"
-              className="hidden shrink-0 rounded hover:bg-primary-foreground/20 group-hover:block"
+              className="hidden shrink-0 rounded hover:bg-foreground/10 group-hover:block"
               title="登録を削除"
               onClick={(e) => {
                 e.stopPropagation();
@@ -142,7 +150,7 @@ export function PlacementChip({
               <XIcon className="size-3" />
             </button>
             <div
-              className="absolute top-0 right-0 h-full w-1.5 cursor-ew-resize opacity-0 group-hover:opacity-100 group-hover:bg-primary-foreground/30"
+              className="absolute top-0 right-0 h-full w-1.5 cursor-ew-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
               onPointerDown={startResize("end")}
               onClick={(e) => e.stopPropagation()}
             />

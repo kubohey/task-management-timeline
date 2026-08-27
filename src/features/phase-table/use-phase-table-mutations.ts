@@ -21,10 +21,16 @@ export function useCreateRow() {
 }
 
 export function useDeleteRow() {
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateTable();
   return useMutation({
     mutationFn: (vars: { id: string; phaseId: string }) => api.deleteTableRow(vars.id),
-    onSuccess: (_data, vars) => invalidate(vars.phaseId),
+    onSuccess: (_data, vars) => {
+      invalidate(vars.phaseId);
+      // 行を削除するとDB側でtask_placementsもCASCADE削除されるため、
+      // タイムライン側のチップが消えるようキャッシュも無効化する。
+      void queryClient.invalidateQueries({ queryKey: ["taskPlacements", vars.phaseId] });
+    },
   });
 }
 
