@@ -1,8 +1,9 @@
 "use client";
 
-import { ClipboardPasteIcon, PlusIcon } from "lucide-react";
+import { ClipboardCopyIcon, ClipboardPasteIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { buildObsidianTable } from "./obsidian-export";
 import { parseObsidianTable } from "./obsidian-import";
 import { PhaseTable } from "./phase-table";
 import type { RowWithCells, TableColumnRecord } from "./types";
@@ -49,6 +50,16 @@ export function PhaseTablePanel({
     importRows.mutate({ phaseId, columns, parsedRows: parsed, baseSortOrder: rows.length });
   };
 
+  const handleExport = async () => {
+    const text = buildObsidianTable(columns, rows);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Obsidian用の表をクリップボードにコピーしました");
+    } catch {
+      toast.error("クリップボードへのコピーに失敗しました");
+    }
+  };
+
   return (
     <div className="border-b bg-muted/20 py-2">
       <div className="mb-2 flex items-center gap-2">
@@ -64,6 +75,10 @@ export function PhaseTablePanel({
         <Button type="button" variant="outline" size="sm" onClick={handleImport}>
           <ClipboardPasteIcon />
           Obsidianから貼り付け
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={handleExport}>
+          <ClipboardCopyIcon />
+          Obsidianへコピー
         </Button>
       </div>
       {isLoading ? (

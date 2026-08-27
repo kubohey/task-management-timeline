@@ -1,9 +1,10 @@
 "use client";
 
-import { ClipboardPasteIcon, PlusIcon } from "lucide-react";
+import { ClipboardCopyIcon, ClipboardPasteIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { buildObsidianTable } from "./obsidian-export";
 import { parseObsidianTable } from "./obsidian-import";
 import { PhaseTable } from "./phase-table";
 import type { RowWithCells, TableColumnRecord } from "./types";
@@ -55,6 +56,16 @@ export function PhaseTableDialog({
     importRows.mutate({ phaseId, columns, parsedRows: parsed, baseSortOrder: rows.length });
   };
 
+  const handleExport = async () => {
+    const text = buildObsidianTable(columns, rows);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Obsidian用の表をクリップボードにコピーしました");
+    } catch {
+      toast.error("クリップボードへのコピーに失敗しました");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-3xl">
@@ -74,6 +85,10 @@ export function PhaseTableDialog({
           <Button type="button" variant="outline" size="sm" onClick={handleImport}>
             <ClipboardPasteIcon />
             Obsidianから貼り付け
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={handleExport}>
+            <ClipboardCopyIcon />
+            Obsidianへコピー
           </Button>
         </div>
         <div className="max-h-[70vh] overflow-auto">

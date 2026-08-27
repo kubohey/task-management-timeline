@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: in-progress (Phase 5完了)
+status: in-progress (Phase 6完了)
 tags: [spec, task-management-timeline]
 ---
 
@@ -234,7 +234,7 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 - [ ] 日表示／年表示の切替
 - [ ] 全画面表示
 - [x] メモ欄のリッチテキスト編集（Tiptap、Phase 5で実装）
-- [ ] コピー時の `- [ ]` → `・` 変換（エクスポート）
+- [x] コピー時の `- [ ]` → `・` 変換（エクスポート、Phase 6で実装）
 - [x] 列自体の追加（Phase 6で実装）
 - [ ] パフォーマンス最適化（Virtual化の高度化）
 - [x] タイムラインに登録済みのタスクをドラッグで引き伸ばして複数日にまたがる予定にする（Phase 6で実装）
@@ -264,4 +264,5 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-27 | インライン表示のPhaseテーブルが横スクロールで画面外に流れる不具合を修正（sticky left-0を追加） |
 | 2026-08-27 | Phase 5（メモ欄）実装。備考列をnote_rich型（Tiptap JSON）に変更し、太字・箇条書き・チェックリスト・ハイライトに対応。タイムライン上のタスクをクリックするとメモ欄（備考＋サブタスク）がポップオーバーで開く。DBマイグレーション（supabase/migrations/0003_note_rich_type.sql）はユーザー側で適用が必要 |
 | 2026-08-27 | Phase 6（表の高度化）着手。列自体の追加・削除を実装：Phase内タスク表にラベル・型（チェックボックス/テキスト/リッチテキスト/サブタスク一覧）を指定して列を追加でき、既存行にも初期値セルをバックフィルする。デフォルト4列は削除不可、ユーザー追加列のみ削除可能 |
-| 2026-08-27 | Phase 6続き。タイムライン上のタスクチップの左右端をドラッグして複数日にまたがる予定にリサイズできるように実装（素のPointer Eventsでライブプレビュー、ドロップ時に確定）。次はObsidianへコピーする際の`・`変換 |
+| 2026-08-27 | Phase 6続き。タイムライン上のタスクチップの左右端をドラッグして複数日にまたがる予定にリサイズできるように実装（素のPointer Eventsでライブプレビュー、ドロップ時に確定）。 |
+| 2026-08-27 | Phase 6完了。「Obsidianへコピー」ボタンでPhaseテーブル全体をObsidian形式のMarkdown表としてクリップボードにコピーできるように実装。備考（リッチテキスト）・サブタスクの箇条書き/チェックリストは`・`始まりのプレーンテキストに変換（太字は`**text**`、ハイライトは`==text==`）。列の追加にも対応した汎用シリアライザ（obsidian-export.ts） |
