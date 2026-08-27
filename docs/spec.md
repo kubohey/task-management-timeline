@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: in-progress (Phase 5完了、DBマイグレーション適用待ち)
+status: in-progress (Phase 5完了)
 tags: [spec, task-management-timeline]
 ---
 
