@@ -21,7 +21,9 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
   const setPhaseSortMode = useUiStore((s) => s.setPhaseSortMode);
 
   const tree = buildHierarchyTree(groups, projects, phases);
-  const rootLabelWidth = useUniformLabelWidth(tree.map((g) => g.name));
+  const rootLabelWidth = useUniformLabelWidth(tree.map((g) => g.name), {
+    className: "font-semibold",
+  });
 
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">読み込み中...</div>;

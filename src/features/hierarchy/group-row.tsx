@@ -35,7 +35,10 @@ export function GroupRow({ group, depth, labelWidth, userId, allowSubgroup }: Gr
   const createProject = useCreateProject();
 
   const hasChildren = group.subgroups.length > 0 || group.projects.length > 0;
-  const subgroupLabelWidth = useUniformLabelWidth(group.subgroups.map((g) => g.name));
+  const subgroupLabelWidth = useUniformLabelWidth(
+    group.subgroups.map((g) => g.name),
+    { className: "font-semibold" },
+  );
   const projectLabelWidth = useUniformLabelWidth(group.projects.map((p) => p.name));
 
   return (
