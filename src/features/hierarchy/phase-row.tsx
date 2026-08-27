@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { TableIcon, Trash2Icon } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
+import { PhaseTableDialog } from "@/features/phase-table/phase-table-dialog";
 import { CalendarRowCells } from "@/features/timeline/calendar-row-cells";
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
 import { INDENT_STEP_PX } from "./constants";
@@ -18,9 +18,10 @@ interface PhaseRowProps {
   labelWidth: number;
 }
 
-/** Phase行：名前編集、status付与、Table（Phase 3で実装）、削除。 */
+/** Phase行：名前編集、status付与、タスク表（Table）を開く、削除。 */
 export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
   const [editing, setEditing] = useState(false);
+  const [tableOpen, setTableOpen] = useState(false);
   const updatePhase = useUpdatePhase();
   const deletePhase = useDeletePhase();
 
@@ -56,8 +57,8 @@ export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
             type="button"
             variant="ghost"
             size="icon-xs"
-            title="タスク表（Phase 3で実装予定）"
-            onClick={() => toast("タスク表はPhase 3で実装予定です")}
+            title="タスク表を開く"
+            onClick={() => setTableOpen(true)}
           >
             <TableIcon />
           </Button>
@@ -77,6 +78,12 @@ export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
         </div>
       </div>
       <CalendarRowCells />
+      <PhaseTableDialog
+        phaseId={phase.id}
+        phaseName={phase.name}
+        open={tableOpen}
+        onOpenChange={setTableOpen}
+      />
     </div>
   );
 }

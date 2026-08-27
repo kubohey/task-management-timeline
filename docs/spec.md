@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: in-progress (Phase 2完了)
+status: in-progress (Phase 3完了)
 tags: [spec, task-management-timeline]
 ---
 
@@ -220,8 +220,8 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 
 - [x] Group/Subgroup/Project/Phaseの作成・名前変更・色変更・折りたたみ
 - [x] 固定サイドバー＋月表示のガントチャート
-- [ ] Phaseテーブル（4列固定）の表示・編集・行追加
-- [ ] Obsidianテーブルの貼り付けインポート
+- [x] Phaseテーブル（4列固定）の表示・編集・行追加
+- [x] Obsidianテーブルの貼り付けインポート
 - [ ] 行→タイムラインへのドラッグ登録（ツールチップでタスク名フル表示）
 - [x] statusタグ（active/always/next）の付与とソート
 - [x] 土日祝の色分け
@@ -256,3 +256,4 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-27 | 初版作成（要件定義・アーキテクチャ・Phase・MVP・技術選定の合意内容をまとめ） |
 | 2026-08-27 | Phase 1（階層構造）実装。Group/Subgroup/Project/PhaseのCRUD・折りたたみ・色編集・statusソートが完了 |
 | 2026-08-27 | Phase 2（タイムライン基本表示）実装。月表示ガントチャート、固定サイドバー＋固定ヘッダーの2軸スティッキー、土日祝の色分けが完了（仮想化は行数・列数が増えるまで見送り） |
+| 2026-08-27 | Phase 3（Phaseテーブル）実装。TanStack Tableで4列固定表（チェックボックス/タスク名/備考/サブタスク）の表示・編集・行追加、Obsidian表の貼り付けインポートが完了（列幅編集・列追加・セル高さ動的拡張はMVP後回し） |
