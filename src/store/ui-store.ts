@@ -1,3 +1,4 @@
+import { startOfMonth } from "date-fns";
 import { create } from "zustand";
 
 export type TimelineScale = "day" | "month" | "year";
@@ -8,9 +9,12 @@ interface UiState {
   isFullscreen: boolean;
   /** Phase一覧の並び替えモード（追加順 or statusソート）。docs/spec.md §2.1 */
   phaseSortMode: PhaseSortMode;
+  /** タイムラインに表示する基準日（月表示ではこの日を含む月を表示）。 */
+  timelineAnchorDate: Date;
   setTimelineScale: (scale: TimelineScale) => void;
   setFullscreen: (value: boolean) => void;
   setPhaseSortMode: (mode: PhaseSortMode) => void;
+  setTimelineAnchorDate: (date: Date) => void;
 }
 
 /**
@@ -21,7 +25,9 @@ export const useUiStore = create<UiState>((set) => ({
   timelineScale: "month",
   isFullscreen: false,
   phaseSortMode: "manual",
+  timelineAnchorDate: startOfMonth(new Date()),
   setTimelineScale: (timelineScale) => set({ timelineScale }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
   setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
+  setTimelineAnchorDate: (timelineAnchorDate) => set({ timelineAnchorDate }),
 }));

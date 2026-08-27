@@ -7,6 +7,8 @@ import { ColorPicker } from "@/features/shared/color-picker";
 import { InlineCreateButton } from "@/features/shared/inline-create-button";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
+import { CalendarRowCells } from "@/features/timeline/calendar-row-cells";
+import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
 import { useUiStore } from "@/store/ui-store";
 import type { ProjectNode } from "./build-tree";
 import { INDENT_STEP_PX } from "./constants";
@@ -41,73 +43,80 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
 
   return (
     <div>
-      <div
-        className="flex items-center gap-1.5 rounded-md px-2 py-1.5"
-        style={{ marginLeft: depth * INDENT_STEP_PX, backgroundColor: project.color ?? undefined }}
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          disabled={project.phases.length === 0}
-          onClick={() =>
-            updateProject.mutate({
-              id: project.id,
-              patch: { is_collapsed: !project.is_collapsed },
-            })
-          }
-          title="Phaseの折りたたみ"
+      <div className="flex items-stretch">
+        <div
+          className="sticky left-0 z-10 flex shrink-0 items-center gap-1.5 px-2 py-1.5"
+          style={{
+            width: SIDEBAR_WIDTH_PX,
+            paddingLeft: depth * INDENT_STEP_PX + 8,
+            backgroundColor: project.color ?? "var(--color-background)",
+          }}
         >
-          {project.is_collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
-        </Button>
-        <InlineEditableText
-          value={project.name}
-          editing={editing}
-          onEditingChange={setEditing}
-          onSubmit={(name) => updateProject.mutate({ id: project.id, patch: { name } })}
-          className="font-medium"
-          style={{ width: labelWidth }}
-        />
-        <InlineCreateButton
-          label="Phase"
-          onCreate={(name) =>
-            createPhase.mutate({
-              projectId: project.id,
-              name,
-              sortOrder: project.phases.length,
-            })
-          }
-        />
-        <div className="ml-auto flex items-center gap-0.5">
           <Button
             type="button"
             variant="ghost"
             size="icon-xs"
-            onClick={() => setEditing(true)}
-            title="名前を編集"
+            disabled={project.phases.length === 0}
+            onClick={() =>
+              updateProject.mutate({
+                id: project.id,
+                patch: { is_collapsed: !project.is_collapsed },
+              })
+            }
+            title="Phaseの折りたたみ"
           >
-            ✏️
+            {project.is_collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
           </Button>
-          <ColorPicker
-            color={project.color}
-            onChange={(color) => updateProject.mutate({ id: project.id, patch: { color } })}
+          <InlineEditableText
+            value={project.name}
+            editing={editing}
+            onEditingChange={setEditing}
+            onSubmit={(name) => updateProject.mutate({ id: project.id, patch: { name } })}
+            className="font-medium"
+            style={{ width: labelWidth }}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            title="Projectを削除"
-            onClick={() => {
-              if (
-                confirm(`Project「${project.name}」を削除しますか？（配下のPhaseも削除されます）`)
-              ) {
-                deleteProject.mutate(project.id);
-              }
-            }}
-          >
-            <Trash2Icon />
-          </Button>
+          <InlineCreateButton
+            label="Phase"
+            onCreate={(name) =>
+              createPhase.mutate({
+                projectId: project.id,
+                name,
+                sortOrder: project.phases.length,
+              })
+            }
+          />
+          <div className="ml-auto flex items-center gap-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setEditing(true)}
+              title="名前を編集"
+            >
+              ✏️
+            </Button>
+            <ColorPicker
+              color={project.color}
+              onChange={(color) => updateProject.mutate({ id: project.id, patch: { color } })}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              title="Projectを削除"
+              onClick={() => {
+                if (
+                  confirm(`Project「${project.name}」を削除しますか？（配下のPhaseも削除されます）`)
+                ) {
+                  deleteProject.mutate(project.id);
+                }
+              }}
+            >
+              <Trash2Icon />
+            </Button>
+          </div>
         </div>
+        <CalendarRowCells />
       </div>
       {!project.is_collapsed && phases.length > 0 && (
         <div className="flex flex-col gap-1 py-1">

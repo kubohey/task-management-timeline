@@ -3,6 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { InlineCreateButton } from "@/features/shared/inline-create-button";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
+import { TimelineDaysProvider } from "@/features/timeline/timeline-context";
+import { TimelineHeader } from "@/features/timeline/timeline-header";
+import { TimelineToolbar } from "@/features/timeline/timeline-toolbar";
 import { useUiStore } from "@/store/ui-store";
 import { buildHierarchyTree } from "./build-tree";
 import { GroupRow } from "./group-row";
@@ -33,53 +36,61 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3 overflow-auto p-4">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
         <InlineCreateButton
           label="Group"
           onCreate={(name) =>
             createGroup.mutate({ userId, name, parentGroupId: null, sortOrder: tree.length })
           }
         />
-        <div className="flex items-center gap-1 text-sm">
-          <span className="text-muted-foreground">Phase並び替え:</span>
-          <Button
-            type="button"
-            variant={phaseSortMode === "manual" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setPhaseSortMode("manual")}
-          >
-            追加順
-          </Button>
-          <Button
-            type="button"
-            variant={phaseSortMode === "status" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setPhaseSortMode("status")}
-          >
-            status順
-          </Button>
+        <div className="flex items-center gap-4">
+          <TimelineToolbar />
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-muted-foreground">Phase並び替え:</span>
+            <Button
+              type="button"
+              variant={phaseSortMode === "manual" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setPhaseSortMode("manual")}
+            >
+              追加順
+            </Button>
+            <Button
+              type="button"
+              variant={phaseSortMode === "status" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setPhaseSortMode("status")}
+            >
+              status順
+            </Button>
+          </div>
         </div>
       </div>
 
-      {tree.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Groupがまだありません。「+ Group」から作成してください。
-        </p>
-      ) : (
-        <div className="flex flex-col gap-1">
-          {tree.map((group) => (
-            <GroupRow
-              key={group.id}
-              group={group}
-              depth={0}
-              labelWidth={rootLabelWidth}
-              userId={userId}
-              allowSubgroup
-            />
-          ))}
+      <TimelineDaysProvider>
+        <div className="flex-1 overflow-auto">
+          <TimelineHeader />
+          {tree.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">
+              Groupがまだありません。「+ Group」から作成してください。
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1 py-1">
+              {tree.map((group) => (
+                <GroupRow
+                  key={group.id}
+                  group={group}
+                  depth={0}
+                  labelWidth={rootLabelWidth}
+                  userId={userId}
+                  allowSubgroup
+                />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </TimelineDaysProvider>
     </div>
   );
 }
