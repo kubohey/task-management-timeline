@@ -15,11 +15,12 @@ cp .env.local.example .env.local
 
 ### 2. DBスキーマの適用
 
-Supabaseダッシュボードの `SQL Editor` で `supabase/migrations/0001_init.sql` の内容を実行する（またはSupabase CLIの `supabase db push` を利用）。
+Supabaseダッシュボードの `SQL Editor` で `supabase/migrations/` 配下のSQLを**番号順に**実行する（またはSupabase CLIの `supabase db push` を利用）。
 
-- 階層構造（groups/projects/phases）、Phaseテーブル（table_columns/table_rows/table_cells）、カレンダー登録タスク（task_placements）のテーブルとRLSポリシーを作成
-- Phase作成時、デフォルト4列（チェックボックス／タスク名／備考／サブタスク）が自動生成される
-- 主要テーブルはRealtime配信対象として登録済み
+- `0001_init.sql`：階層構造（groups/projects/phases）、Phaseテーブル（table_columns/table_rows/table_cells）、カレンダー登録タスク（task_placements）のテーブルとRLSポリシーを作成
+  - Phase作成時、デフォルト4列（チェックボックス／タスク名／備考／サブタスク）が自動生成される
+  - 主要テーブルはRealtime配信対象として登録済み
+- `0002_add_project_color.sql`：Projectタブの背景色編集用に `projects.color` 列を追加
 
 ### 3. サインアップの無効化・自分のアカウント作成
 
@@ -37,14 +38,29 @@ npm run dev
 
 [http://localhost:3000](http://localhost:3000) にアクセス。未ログインの場合は `/login` にリダイレクトされる。
 
-## ディレクトリ構成（Phase 0時点）
+## ディレクトリ構成（Phase 1時点）
 
 ```
 src/
   app/
     layout.tsx        … ルートレイアウト（Providers: React Query / Tooltip / Toaster）
-    page.tsx           … 認証必須のトップページ（Phase 1でTimelineに置き換え）
+    page.tsx           … 認証必須のトップページ（階層UIを表示。Phase 2でTimelineと統合）
     login/              … ログイン画面・Server Action
+  features/
+    hierarchy/           … Group/Subgroup/Project/Phase のCRUD・折りたたみ・色編集・status
+      types.ts             … 各テーブルの型定義
+      api.ts                … Supabase CRUDクエリ
+      build-tree.ts          … フラットな配列から木構造を組み立てる
+      use-hierarchy-data.ts   … React Query + Realtime購読
+      use-hierarchy-mutations.ts … 作成・更新・削除のmutationフック
+      hierarchy-tree.tsx       … ルートコンポーネント
+      group-row.tsx / project-row.tsx / phase-row.tsx … 各階層の行コンポーネント
+      status-select.tsx        … Phaseのstatus（active/always/next）選択
+    shared/               … 階層UI以外でも使う共通部品
+      color-picker.tsx        … タブ背景色ピッカー
+      inline-editable-text.tsx … クリックで編集できるテキスト
+      inline-create-button.tsx … 「+ 追加」ボタン
+      use-max-text-width.ts    … 同階層タブの表示幅統一
   lib/supabase/
     client.ts           … ブラウザ用Supabaseクライアント
     server.ts           … Server Component/Action用Supabaseクライアント
@@ -52,9 +68,10 @@ src/
     dal.ts                … Data Access Layer（verifySession）
     use-realtime-table.ts … Realtime購読の共通フック
   proxy.ts               … Next.js 16のProxy（旧Middleware）エントリポイント
-  store/ui-store.ts       … UIの一時状態用Zustandストア
+  store/ui-store.ts       … UIの一時状態用Zustandストア（timelineScale/phaseSortMode等）
 supabase/migrations/
   0001_init.sql           … 初期スキーマ・RLS・Realtime設定
+  0002_add_project_color.sql … Projectタブの背景色列を追加
 docs/spec.md              … 仕様書
 ```
 

@@ -1,6 +1,7 @@
 import { verifySession } from "@/lib/supabase/dal";
 import { logout } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
+import { HierarchyTree } from "@/features/hierarchy/hierarchy-tree";
 
 export default async function Home() {
   const session = await verifySession();
@@ -18,9 +19,7 @@ export default async function Home() {
           </form>
         </div>
       </header>
-      <div className="flex flex-1 items-center justify-center text-muted-foreground">
-        Timeline（Phase 1で実装予定）
-      </div>
+      <HierarchyTree userId={session.userId} />
     </main>
   );
 }

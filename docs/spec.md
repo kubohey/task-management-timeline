@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: draft (実装着手前)
+status: in-progress (Phase 1完了)
 tags: [spec, task-management-timeline]
 ---
 
@@ -218,12 +218,12 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 
 ### MVPに含む
 
-- [ ] Group/Subgroup/Project/Phaseの作成・名前変更・色変更・折りたたみ
+- [x] Group/Subgroup/Project/Phaseの作成・名前変更・色変更・折りたたみ
 - [ ] 固定サイドバー＋月表示のガントチャート
 - [ ] Phaseテーブル（4列固定）の表示・編集・行追加
 - [ ] Obsidianテーブルの貼り付けインポート
 - [ ] 行→タイムラインへのドラッグ登録（ツールチップでタスク名フル表示）
-- [ ] statusタグ（active/always/next）の付与とソート
+- [x] statusタグ（active/always/next）の付与とソート
 - [ ] 土日祝の色分け
 - [ ] ログイン（サインアップ無効化）
 - [ ] RLSによるデータ保護
@@ -254,3 +254,4 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 日付 | 内容 |
 |---|---|
 | 2026-08-27 | 初版作成（要件定義・アーキテクチャ・Phase・MVP・技術選定の合意内容をまとめ） |
+| 2026-08-27 | Phase 1（階層構造）実装。Group/Subgroup/Project/PhaseのCRUD・折りたたみ・色編集・statusソートが完了 |
