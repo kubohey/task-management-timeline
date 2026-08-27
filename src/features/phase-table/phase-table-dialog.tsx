@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { parseObsidianTable } from "./obsidian-import";
 import { PhaseTable } from "./phase-table";
-import { usePhaseTableData } from "./use-phase-table-data";
+import type { RowWithCells, TableColumnRecord } from "./types";
 import { useCreateRow, useImportObsidianRows } from "./use-phase-table-mutations";
 
 interface PhaseTableDialogProps {
@@ -14,10 +14,16 @@ interface PhaseTableDialogProps {
   phaseName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  columns: TableColumnRecord[];
+  rows: RowWithCells[];
+  isLoading: boolean;
+  isError: boolean;
 }
 
 /**
- * Phase内タスク表をダイアログで開く。
+ * Phase内タスク表をダイアログで開く。データはPhaseRowが常時取得したものをpropsで
+ * 受け取る（インライン表示と共有、二重取得を避ける）。モーダルの裏はタイムラインが
+ * 隠れて実用上ドラッグ先が見えないため、ドラッグハンドルはここでは表示しない。
  * docs/spec.md §2.1「Phaseには Table 表示があり、タスク一覧表を開ける」
  */
 export function PhaseTableDialog({
@@ -25,8 +31,11 @@ export function PhaseTableDialog({
   phaseName,
   open,
   onOpenChange,
+  columns,
+  rows,
+  isLoading,
+  isError,
 }: PhaseTableDialogProps) {
-  const { columns, rows, isLoading, isError } = usePhaseTableData(phaseId, open);
   const createRow = useCreateRow();
   const importRows = useImportObsidianRows();
 

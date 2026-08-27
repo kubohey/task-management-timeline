@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: in-progress (Phase 3完了)
+status: in-progress (Phase 4完了)
 tags: [spec, task-management-timeline]
 ---
 
@@ -222,7 +222,7 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 - [x] 固定サイドバー＋月表示のガントチャート
 - [x] Phaseテーブル（4列固定）の表示・編集・行追加
 - [x] Obsidianテーブルの貼り付けインポート
-- [ ] 行→タイムラインへのドラッグ登録（ツールチップでタスク名フル表示）
+- [x] 行→タイムラインへのドラッグ登録（ツールチップでタスク名フル表示）
 - [x] statusタグ（active/always/next）の付与とソート
 - [x] 土日祝の色分け
 - [ ] ログイン（サインアップ無効化）
@@ -258,3 +258,4 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-27 | Phase 3（Phaseテーブル）実装。TanStack Tableで4列固定表（チェックボックス/タスク名/備考/サブタスク）の表示・編集・行追加、Obsidian表の貼り付けインポートが完了（列幅編集・列追加はMVP後回し） |
 | 2026-08-27 | Obsidian貼り付けインポートの修正：`<br>`をサブタスク欄だけでなく全セルで実改行に変換。タスク名・備考セルの高さを行数に応じて動的に拡張するよう対応（ユーザーからのフィードバックにより前倒し実装） |
 | 2026-08-27 | Phaseテーブルにインライン表示（カレンダーと並べて表示）を追加、単体ダイアログ表示と共存。列幅のドラッグ調整（TanStack Table標準機能、幅はDBに永続化）を前倒し実装。ページ全体の高さ制約が崩れていたためタイムライン日付ヘッダーのスクロール追従が効いていなかった不具合を修正（body/mainのoverflow設定） |
+| 2026-08-27 | Phase 4（ドラッグ&カレンダー登録）実装。dnd-kitでPhase内タスク表の行をタイムラインの日付セルへドラッグ登録、ホバーでタスク名全文をツールチップ表示、ホバー時の×ボタンで登録削除に対応。ドラッグはインライン表示（カレンダーと並べて見える表示）からのみ可能（単体ダイアログはタイムラインが隠れるため対象外） |

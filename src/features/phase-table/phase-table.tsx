@@ -5,6 +5,7 @@ import { getCoreRowModel, useLegacyTable, type LegacyColumnDef } from "@tanstack
 import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DraggableRowHandle } from "@/features/task-placement/draggable-row-handle";
 import { cn } from "@/lib/utils";
 import { CheckboxCell } from "./cells/checkbox-cell";
 import { SubtaskListCell } from "./cells/subtask-list-cell";
@@ -23,6 +24,8 @@ interface PhaseTableProps {
   phaseId: string;
   columns: TableColumnRecord[];
   rows: RowWithCells[];
+  /** trueのとき各行にドラッグハンドルを表示する（インライン表示のみ、docs/spec.md §2.2）。 */
+  draggable?: boolean;
 }
 
 const ACTIONS_COLUMN_ID = "__actions";
@@ -31,10 +34,11 @@ const ACTIONS_COLUMN_ID = "__actions";
  * Phase内タスク表の本体。TanStack Table（getCoreRowModelのみ）で描画する。
  * 列幅編集・列追加はMVP後回し（docs/spec.md §9）のため、列幅はDBの固定値をそのまま使う。
  */
-export function PhaseTable({ phaseId, columns, rows }: PhaseTableProps) {
+export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseTableProps) {
   const updateCell = useUpdateCell();
   const deleteRow = useDeleteRow();
   const updateColumn = useUpdateColumn();
+  const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
 
   const columnDefs: LegacyColumnDef<RowWithCells>[] = [
     ...columns.map(
@@ -74,23 +78,31 @@ export function PhaseTable({ phaseId, columns, rows }: PhaseTableProps) {
     {
       id: ACTIONS_COLUMN_ID,
       header: "",
-      size: 40,
+      size: draggable ? 64 : 40,
       enableResizing: false,
-      cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          title="行を削除"
-          onClick={() => {
-            if (confirm("この行を削除しますか？")) {
-              deleteRow.mutate({ id: row.original.row.id, phaseId });
-            }
-          }}
-        >
-          <Trash2Icon />
-        </Button>
-      ),
+      cell: ({ row }) => {
+        const taskName = taskNameColumnId
+          ? ((row.original.cells[taskNameColumnId] as TextCellValue | undefined)?.text ?? "")
+          : "";
+        return (
+          <div className="flex items-center gap-1">
+            {draggable && <DraggableRowHandle rowId={row.original.row.id} taskName={taskName} />}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              title="行を削除"
+              onClick={() => {
+                if (confirm("この行を削除しますか？")) {
+                  deleteRow.mutate({ id: row.original.row.id, phaseId });
+                }
+              }}
+            >
+              <Trash2Icon />
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

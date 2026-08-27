@@ -5,21 +5,31 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { parseObsidianTable } from "./obsidian-import";
 import { PhaseTable } from "./phase-table";
-import { usePhaseTableData } from "./use-phase-table-data";
+import type { RowWithCells, TableColumnRecord } from "./types";
 import { useCreateRow, useImportObsidianRows } from "./use-phase-table-mutations";
 
 interface PhaseTablePanelProps {
   phaseId: string;
+  columns: TableColumnRecord[];
+  rows: RowWithCells[];
+  isLoading: boolean;
+  isError: boolean;
 }
 
 /**
  * Phase内タスク表を、タイムライン上のPhase行の直下にインライン表示するパネル。
  * モーダルで覆ってしまうとカレンダー（タイムライン）と並べて見られないため、
- * ページ内展開にしている。マウントされている間だけデータ取得を行う。
+ * ページ内展開にしている。データはPhaseRowが常時取得したものをpropsで受け取る
+ * （タイムラインのチップ表示にも同じデータが必要なため）。
  * docs/spec.md §2.1「Phaseには Table 表示があり、タスク一覧表を開ける」
  */
-export function PhaseTablePanel({ phaseId }: PhaseTablePanelProps) {
-  const { columns, rows, isLoading, isError } = usePhaseTableData(phaseId, true);
+export function PhaseTablePanel({
+  phaseId,
+  columns,
+  rows,
+  isLoading,
+  isError,
+}: PhaseTablePanelProps) {
   const createRow = useCreateRow();
   const importRows = useImportObsidianRows();
 
@@ -62,7 +72,7 @@ export function PhaseTablePanel({ phaseId }: PhaseTablePanelProps) {
         <p className="text-sm text-destructive">データの取得に失敗しました。</p>
       ) : (
         <div className="max-w-full overflow-x-auto rounded-md border bg-background">
-          <PhaseTable phaseId={phaseId} columns={columns} rows={rows} />
+          <PhaseTable phaseId={phaseId} columns={columns} rows={rows} draggable />
         </div>
       )}
     </div>
