@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 
@@ -11,15 +11,30 @@ import { createClient } from "@/lib/supabase/client";
  *
  * 複数デバイスから同時に開いている場合、他デバイスでの変更が数百ms〜数秒以内に
  * 画面へ反映される（Last-Write-Wins、詳細はdocs/spec.md §4を参照）。
+ *
+ * 同じ(table, filter, queryKey)を複数のコンポーネントが同時に購読すること
+ * （例：同じPhaseのタスク表をインライン表示とダイアログ表示で同時に開く）があるため、
+ * チャンネル名にはコンポーネントインスタンスごとに一意なidを含める。同名チャンネルの
+ * 使い回しはSupabaseクライアント側で「subscribe後にonを追加できない」エラーになるため。
+ * enabledをfalseにすると購読自体を行わない（マウントはされているが非表示のダイアログなど）。
  */
-export function useRealtimeTable(table: string, queryKey: QueryKey, filter?: string) {
+export function useRealtimeTable(
+  table: string,
+  queryKey: QueryKey,
+  filter?: string,
+  enabled = true,
+) {
   const queryClient = useQueryClient();
   const queryKeyString = JSON.stringify(queryKey);
+  const instanceId = useId();
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const supabase = createClient();
     const channel = supabase
-      .channel(`realtime:${table}:${filter ?? "all"}:${queryKeyString}`)
+      .channel(`realtime:${table}:${filter ?? "all"}:${queryKeyString}:${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -38,5 +53,5 @@ export function useRealtimeTable(table: string, queryKey: QueryKey, filter?: str
       void supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, filter, queryKeyString]);
+  }, [table, filter, queryKeyString, instanceId, enabled]);
 }

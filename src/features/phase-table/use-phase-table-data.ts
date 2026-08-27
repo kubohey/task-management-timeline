@@ -7,14 +7,21 @@ import { fetchTableCells, fetchTableColumns, fetchTableRows } from "./api";
 import type { CellValue, RowWithCells } from "./types";
 
 /**
- * Phaseテーブルのcolumns/rows/cellsをまとめて取得する。ダイアログを開いている間だけ
- * 有効化される（`enabled`）。columns/rowsはphase_idで絞り込んだRealtime購読、
- * cellsはphase_idを持たないため無絞り込みで購読する（ダイアログのマウント中のみ）。
+ * Phaseテーブルのcolumns/rows/cellsをまとめて取得する。呼び出し側（インライン表示/
+ * ダイアログ表示）が表示中の間だけ`enabled`で取得・Realtime購読を有効化する。
+ * columns/rowsはphase_idで絞り込んだRealtime購読、cellsはphase_idを持たないため
+ * 無絞り込みで購読する。同じPhaseを複数箇所（インライン＋ダイアログ）で同時に開いても
+ * 購読チャンネルが衝突しないよう、チャンネル名の一意化はuseRealtimeTable側で行う。
  */
 export function usePhaseTableData(phaseId: string, enabled: boolean) {
-  useRealtimeTable("table_columns", ["tableColumns", phaseId], `phase_id=eq.${phaseId}`);
-  useRealtimeTable("table_rows", ["tableRows", phaseId], `phase_id=eq.${phaseId}`);
-  useRealtimeTable("table_cells", ["tableCells", phaseId]);
+  useRealtimeTable(
+    "table_columns",
+    ["tableColumns", phaseId],
+    `phase_id=eq.${phaseId}`,
+    enabled,
+  );
+  useRealtimeTable("table_rows", ["tableRows", phaseId], `phase_id=eq.${phaseId}`, enabled);
+  useRealtimeTable("table_cells", ["tableCells", phaseId], undefined, enabled);
 
   const columnsQuery = useQuery({
     queryKey: ["tableColumns", phaseId],
