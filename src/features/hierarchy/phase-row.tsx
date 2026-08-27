@@ -155,7 +155,10 @@ export function PhaseRow({ phase, depth, labelWidth }: PhaseRowProps) {
           <PhaseTimelineCells phaseId={phase.id} taskNameByRowId={taskNameByRowId} />
         </div>
         {tableOpen && (
-          <div style={{ paddingLeft: depth * INDENT_STEP_PX + 8 }}>
+          <div
+            className="sticky left-0 z-10 w-fit bg-background"
+            style={{ paddingLeft: depth * INDENT_STEP_PX + 8 }}
+          >
             <PhaseTablePanel
               phaseId={phase.id}
               columns={columns}
