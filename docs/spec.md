@@ -1,0 +1,256 @@
+---
+title: Task Management Timeline 仕様書
+created: 2026-08-27
+status: draft (実装着手前)
+tags: [spec, task-management-timeline]
+---
+
+# Task Management Timeline 仕様書
+
+> [!note] このドキュメントについて
+> ガントチャートベースのタスク管理Webアプリ「Task Management Timeline」の仕様をまとめたもの。
+> 実装着手前の合意事項として作成。Obsidianでの閲覧を前提にMarkdownで記述。
+
+---
+
+## 1. 目的・使用シーン
+
+- 「いつ何をやりたいか？」を一目で把握する
+- 保留・中途半端になっているタスクを表形式で可視化する
+- 表の役割：これまでのタスクのログを一覧化し「どこまで進んだか」を把握する。プロジェクトの段階（Phase）ごとに表を切り分けられる
+- タイムラインの役割：「いつ何をやりたいか」という予定と「いつどこまで進んだか」というログの両方を扱う
+
+### 利用形態
+
+- 個人利用（マルチユーザー機能は対象外）
+- ただし**公開URLでホスティングし、複数PC/デバイスから接続**できるようにする
+- 複数デバイスから同時に開いた場合、**リアルタイム同期**を行う（詳細は §6）
+
+---
+
+## 2. 機能要件
+
+### 2.1 プロジェクト階層
+
+- 階層構造：`Group → Subgroup → Project → Phase`
+  - Subgroupは必須ではない（Groupの下に直接Projectを作ってもよい）
+- Group / Subgroup / Project タブは横スクロール時に**画面に固定**され、流れない
+- Group / Subgroup / Project タブの背景色は自由に変更可能
+- Phaseタブの背景色は白で統一
+- 名前変更可能な対象：Group名、Project名、Phase名、status
+- Group名の隣に配置するボタン
+  - サブグループを新規作成
+  - プロジェクトを新規作成
+  - ✏ グループ名編集
+  - 🎨 グループタブの背景色変更
+- Group・Subgroup・Project・Phaseそれぞれのタブ表示幅は、**同階層内で最も長い名称に合わせて動的に統一**される
+- Phaseには `Table` 表示があり、タスク一覧表を開ける（§2.2参照）
+- 折りたたみ（トグル）仕様
+  - Groupのトグル → Subgroup以下の階層を折りたたみ
+  - Subgroupのトグル → Project以下を折りたたみ
+  - Projectのトグル → Phaseを折りたたみ
+  - Phaseにトグルは不要（`Table`ボタンがトグルの代わり）
+- status機能
+  - Phaseに `active` / `always` / `next` のいずれかのタグを付与できる
+  - statusでソートできる
+
+### 2.2 Phase内タスク表
+
+- Obsidianの表をコピー＆ペーストして埋め込める
+- 列構成
+  1. チェックボックス
+  2. タスク名
+  3. 備考欄
+  4. サブタスク用チェックボックス欄（いくつでも追加可能）
+- 表の行をドラッグ＆ドロップでカレンダー（タイムライン）に登録できる
+  - ドラッグしても元の行は表から消えず維持される（＝コピーしてカレンダーに貼り付けるイメージ）
+- Obsidianへ表をコピペする際、4列目（サブタスクの `- [ ]` 形式）はObsidianの表内ではチェックボックス化されないため、**コピー時に `・` へ変換**する
+- 表の行をドラッグしてカレンダーに登録した際、2列目のタスク名をカレンダー側に表示する
+- セル幅は自由に編集可能。**最終列の幅を広げると表全体の横幅が拡張**される
+- 行・列の追加が可能
+- セル内テキストが複数行になる場合、**行数に応じてセルの高さが動的に拡大**する
+- 列のラベル・セルの文字は編集可能
+
+### 2.3 カレンダー登録タスク
+
+- タイムライン上は1日の表示幅が狭くタスク名が全て表示できないため、**カーソルを合わせると吹き出しでタスク名全体を表示**
+- タスクをクリックするとメモ欄（ポップオーバー/ダイアログ）が開く
+- メモ欄には、表の3列目（備考）と4列目（サブタスク）が表形式で表示される
+- メモ欄の操作性はObsidian相当（チェックボックス作成、箇条書き、太字、ハイライト、メモ機能）
+- メモ欄で編集した内容はPhase内の表にも反映される
+  - 実装方針：カレンダー上のタスクはPhase表の行への**参照**であり、実体データを複製しない。編集は同一データソースに対して行われるため、双方向同期は自動的に成立する（§5データモデル参照）
+
+### 2.4 その他
+
+- アプリ名：**Task Management Timeline**
+- 全画面表示機能
+- 表示単位の切替：日 / 月 / 年
+- カレンダーの日付文字・タイムライン列の色分け
+  - 土曜日 → 青
+  - 日曜日・祝日 → 赤（祝日判定は `holiday-jp` を使用）
+
+---
+
+## 3. 認証・アクセス制御
+
+- 公開URLで複数デバイスからアクセスできるようにするため、**認証を必須**とする
+- ログイン方式：メール＋パスワード、またはMagic Link（Supabase Auth）
+- **新規サインアップは無効化**し、利用者本人のアカウントのみ作成可能にする（Supabase側でサインアップ無効化 or 許可メールアドレスの制限）
+- 未ログイン状態では本体画面（`/timeline` 等）にアクセスできないようミドルウェアでガード
+
+---
+
+## 4. リアルタイム同期
+
+- 複数デバイスから同時に開いた場合、他デバイスでの変更が即座に画面へ反映される
+- 実装方式：Supabase Realtime（Postgres Changes）を主要テーブルに対して購読
+  - 対象：`groups` / `projects` / `phases` / `table_columns` / `table_rows` / `table_cells` / `task_placements`
+- クライアント側は React Query 等でのキャッシュ管理 ＋ Realtimeイベント受信時にキャッシュを更新する構成
+- 競合解決方針：**Last-Write-Wins**（CRDT/OTのような操作変換は実装しない）
+  - 個人が複数デバイスを使い分ける利用形態を前提とし、同時編集の即時反映により「気づかず上書きされる」リスクを下げることで十分と判断
+  - セルの同時編集ロック等は現時点では要件外（必要になれば追加検討）
+
+---
+
+## 5. データモデル（概念設計）
+
+```
+groups (id, parent_group_id nullable, user_id, name, color, order, is_collapsed)
+  └─ Group/Subgroupを同一テーブルで自己参照表現。RLSの起点となるuser_idはここにのみ持たせる
+
+projects (id, group_id, name, order, is_collapsed)
+
+phases (id, project_id, name, status[active|always|next] nullable, order)
+
+table_columns (id, phase_id, key, label, type[checkbox|text|note_rich|subtask_list],
+               width, order)
+  └─ 1〜4列目はPhase作成時にデフォルト生成。5列目以降はユーザーが追加可能
+
+table_rows (id, phase_id, order, height)
+
+table_cells (row_id, column_id, value: jsonb)
+  ├─ checkbox      → { checked: bool }
+  ├─ text          → { text: string }
+  ├─ note_rich     → Tiptap JSON
+  └─ subtask_list  → { items: [{ label, checked }] }
+
+task_placements (id, source_row_id, start_date, end_date, view_scale)
+  └─ Phase表の行をカレンダーへドラッグした「予定」。
+     タスク名・備考・サブタスクはsource_row_id経由でtable_cellsを直接参照し、
+     実体を複製しない
+```
+
+**RLS方針**：`groups.user_id = auth.uid()` を起点に、`projects/phases/table_rows/table_cells/task_placements` は親子関係（`group_id → project_id → phase_id → row_id`）を辿って同一ユーザーのデータのみアクセス可能とする。各テーブルに個別の `user_id` は持たせない。
+
+---
+
+## 6. フロントエンド構成（想定）
+
+```
+/app
+  /(dashboard)/timeline/page.tsx   … メイン画面
+/features
+  /hierarchy       … Group/Subgroup/Project/Phase のCRUD・折りたたみ・色編集
+  /timeline        … ガントチャート本体（独自実装）
+  /phase-table     … TanStack Table + Obsidian連携
+  /calendar-task   … dnd-kit ドロップ処理 + メモポップオーバー(Tiptap)
+  /shared          … カラーピッカー、日付ユーティリティ等
+/store             … Zustand（UIの一時状態のみ：折りたたみ状態、選択スケール、
+                      ドラッグ中状態、全画面状態）
+/lib/supabase      … クライアント、クエリ、Realtime購読フック
+```
+
+### タイムラインの実装方針
+
+- 左側の階層ラベル列を `position: sticky; left: 0`、上部の日付ヘッダー行を `position: sticky; top: 0` として2軸固定を実現
+- 列幅は同階層内の最長テキストを実測し、CSS変数に反映して統一
+- 表示スケール（日/月/年）は `date-fns` の区間生成関数で列を再生成
+- 列数が多くなる年表示に備え、**TanStack Virtualは早期（Phase 2〜3）に導入**（後付けだと固定サイドバーとの整合コストが高いため）
+
+---
+
+## 7. 技術選定
+
+| 用途 | 技術 | 備考 |
+|---|---|---|
+| Webアプリ基盤 | Next.js | |
+| 言語 | TypeScript | |
+| UI | React | |
+| CSS | Tailwind CSS | |
+| UI部品 | shadcn/ui + Radix UI | |
+| Table | TanStack Table | 列リサイズ標準対応 |
+| Timeline | 独自実装 | CSS Grid + sticky |
+| 仮想化 | TanStack Virtual | 年表示を見据え早期導入 |
+| Drag & Drop | dnd-kit | 表の行→タイムラインの異コンテナ間DnD |
+| Rich Editor | Tiptap | StarterKit + TaskList/TaskItem + Highlight |
+| Markdown変換 | remark + remark-gfm | Obsidianテーブルのコピペ入出力用（新規追加） |
+| State（UI） | Zustand | 一時状態のみ |
+| State（サーバ） | TanStack Query（React Query） | Supabaseデータのキャッシュ・楽観的更新用（新規追加） |
+| Date | date-fns | |
+| 日本祝日 | holiday-jp | |
+| DB | Supabase / PostgreSQL | RLSでuser_id起点の保護 |
+| Auth | Supabase Auth | サインアップ無効化・許可アドレス制限 |
+| Realtime | Supabase Realtime | Postgres Changes購読 |
+| Hosting | Vercel | |
+| 開発 | Cursor | |
+| AI Coding | Claude Code | |
+| Version管理 | Git / GitHub | |
+
+---
+
+## 8. 開発ロードマップ
+
+| Phase | 内容 | 主な成果物 |
+|---|---|---|
+| 0. 基盤構築 | Next.js/Tailwind/shadcn/Supabaseセットアップ、DBスキーマ・RLS作成、Auth導入、Realtime購読の共通フック整備 | 動くひな形 |
+| 1. 階層構造 | Group/Subgroup/Project/Phase CRUD、固定サイドバー、色編集、折りたたみ、名前変更、status付与 | 階層UI一式 |
+| 2. タイムライン基本表示 | 月表示ガントチャート、固定スクロール、土日祝の色分け | 予定の可視化 |
+| 3. Phaseテーブル | TanStack Tableで4列固定表、行/列追加、幅編集、Obsidian貼り付けインポート | ログ表 |
+| 4. ドラッグ&カレンダー登録 | dnd-kitで行→タイムラインへドラッグ、ツールチップ表示 | 予定登録フロー |
+| 5. メモ欄（Tiptap） | クリックでメモポップオーバー、チェックボックス/箇条書き/太字/ハイライト、表との同期確認 | ログの詳細記録 |
+| 6. 表の高度化 | セル幅可変（最終列で表拡張）、複数行セルの高さ自動拡張、コピー時の`・`変換 | Obsidian双方向運用 |
+| 7. 表示切替・仕上げ | 日/年表示切替、全画面表示、statusによるソート/フィルタ、パフォーマンス最適化 | 実運用レベル |
+| 8. デプロイ・安定化 | Vercelデプロイ、Auth確認、RLS確認、簡易テスト | 本番運用開始 |
+
+---
+
+## 9. MVP範囲
+
+### MVPに含む
+
+- [ ] Group/Subgroup/Project/Phaseの作成・名前変更・色変更・折りたたみ
+- [ ] 固定サイドバー＋月表示のガントチャート
+- [ ] Phaseテーブル（4列固定）の表示・編集・行追加
+- [ ] Obsidianテーブルの貼り付けインポート
+- [ ] 行→タイムラインへのドラッグ登録（ツールチップでタスク名フル表示）
+- [ ] statusタグ（active/always/next）の付与とソート
+- [ ] 土日祝の色分け
+- [ ] ログイン（サインアップ無効化）
+- [ ] RLSによるデータ保護
+- [ ] 主要テーブルのRealtime同期
+
+### MVP後回し（Phase 2以降）
+
+- [ ] 日表示／年表示の切替
+- [ ] 全画面表示
+- [ ] メモ欄のリッチテキスト編集（MVPでは簡易テキストエリアで代替）
+- [ ] 列幅の自由編集・最終列での表拡張・セル高さの動的拡張
+- [ ] コピー時の `- [ ]` → `・` 変換（エクスポート）
+- [ ] 列自体の追加
+- [ ] パフォーマンス最適化（Virtual化の高度化）
+
+---
+
+## 10. 前提・未確定事項
+
+- Obsidianとの連携はクリップボード経由のコピペのみを対象とし、`.md` ファイルを直接読み書きするファイルシステム連携は対象外
+- タイムラインで扱う期間は数年規模を想定（無限スクロールではなく表示範囲切替で対応）
+- セルの同時編集ロックなど、Last-Write-Winsを超える競合制御は現時点では要件外
+
+---
+
+## 11. 変更履歴
+
+| 日付 | 内容 |
+|---|---|
+| 2026-08-27 | 初版作成（要件定義・アーキテクチャ・Phase・MVP・技術選定の合意内容をまとめ） |
