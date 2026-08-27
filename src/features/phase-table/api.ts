@@ -1,7 +1,15 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ParsedObsidianRow } from "./obsidian-import";
 import { defaultCellValue, emptyDoc } from "./types";
-import type { CellValue, TableColumnRecord, TableRowRecord } from "./types";
+import type { CellValue, TableColumnRecord, TableColumnType, TableRowRecord } from "./types";
+
+/** 列typeごとの初期幅（px）。create_default_table_columns()トリガーの値と揃える。 */
+const DEFAULT_COLUMN_WIDTH: Record<TableColumnType, number> = {
+  checkbox: 48,
+  text: 240,
+  note_rich: 320,
+  subtask_list: 240,
+};
 
 // ============================================================
 // 取得
@@ -53,6 +61,51 @@ export type TableColumnPatch = Partial<Pick<TableColumnRecord, "width" | "label"
 export async function updateTableColumn(id: string, patch: TableColumnPatch) {
   const supabase = createClient();
   const { error } = await supabase.from("table_columns").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * 列を1件追加し、既存の全行に対して初期値のセルをまとめて作成する。
+ * keyはユーザー入力に紐づく意味を持たないため一意な値を生成する。
+ */
+export async function createTableColumn(input: {
+  phaseId: string;
+  label: string;
+  type: TableColumnType;
+  sortOrder: number;
+  existingRowIds: string[];
+}) {
+  const supabase = createClient();
+  const { data: column, error: columnError } = await supabase
+    .from("table_columns")
+    .insert({
+      phase_id: input.phaseId,
+      key: `custom_${crypto.randomUUID()}`,
+      label: input.label,
+      type: input.type,
+      width: DEFAULT_COLUMN_WIDTH[input.type],
+      sort_order: input.sortOrder,
+    })
+    .select("id")
+    .single();
+  if (columnError) throw columnError;
+
+  if (input.existingRowIds.length === 0) {
+    return;
+  }
+  const cells = input.existingRowIds.map((rowId) => ({
+    row_id: rowId,
+    column_id: column.id as string,
+    value: defaultCellValue(input.type),
+  }));
+  const { error: cellsError } = await supabase.from("table_cells").insert(cells);
+  if (cellsError) throw cellsError;
+}
+
+/** ユーザーが追加した列を削除する（デフォルト4列は呼び出し側でUIから除外する）。 */
+export async function deleteTableColumn(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("table_columns").delete().eq("id", id);
   if (error) throw error;
 }
 

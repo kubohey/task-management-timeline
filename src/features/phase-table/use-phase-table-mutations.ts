@@ -54,3 +54,27 @@ export function useUpdateColumn() {
       void queryClient.invalidateQueries({ queryKey: ["tableColumns", vars.phaseId] }),
   });
 }
+
+export function useCreateColumn() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateTable();
+  return useMutation({
+    mutationFn: api.createTableColumn,
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ["tableColumns", vars.phaseId] });
+      invalidate(vars.phaseId);
+    },
+  });
+}
+
+export function useDeleteColumn() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateTable();
+  return useMutation({
+    mutationFn: (vars: { id: string; phaseId: string }) => api.deleteTableColumn(vars.id),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ["tableColumns", vars.phaseId] });
+      invalidate(vars.phaseId);
+    },
+  });
+}

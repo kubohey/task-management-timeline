@@ -7,11 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DraggableRowHandle } from "@/features/task-placement/draggable-row-handle";
 import { cn } from "@/lib/utils";
+import { AddColumnPopover } from "./add-column-popover";
 import { CheckboxCell } from "./cells/checkbox-cell";
 import { NoteRichCell } from "./cells/note-rich-cell";
 import { SubtaskListCell } from "./cells/subtask-list-cell";
 import { TextCell } from "./cells/text-cell";
-import { useDeleteRow, useUpdateCell, useUpdateColumn } from "./use-phase-table-mutations";
+import {
+  useCreateColumn,
+  useDeleteColumn,
+  useDeleteRow,
+  useUpdateCell,
+  useUpdateColumn,
+} from "./use-phase-table-mutations";
 import type {
   CellValue,
   CheckboxCellValue,
@@ -31,6 +38,9 @@ interface PhaseTableProps {
 }
 
 const ACTIONS_COLUMN_ID = "__actions";
+const ADD_COLUMN_ID = "__add_column";
+/** デフォルト4列のkey。この列は削除ボタンを出さない。 */
+const DEFAULT_COLUMN_KEYS = new Set(["checkbox", "task_name", "note", "subtasks"]);
 
 /**
  * Phase内タスク表の本体。TanStack Table（getCoreRowModelのみ）で描画する。
@@ -40,13 +50,34 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
   const updateCell = useUpdateCell();
   const deleteRow = useDeleteRow();
   const updateColumn = useUpdateColumn();
+  const createColumn = useCreateColumn();
+  const deleteColumn = useDeleteColumn();
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
 
   const columnDefs: LegacyColumnDef<RowWithCells>[] = [
     ...columns.map(
       (column): LegacyColumnDef<RowWithCells> => ({
         id: column.id,
-        header: column.label,
+        header: () => (
+          <div className="flex items-center justify-between gap-1">
+            <span>{column.label}</span>
+            {!DEFAULT_COLUMN_KEYS.has(column.key) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                title="列を削除"
+                onClick={() => {
+                  if (confirm(`列「${column.label}」を削除しますか？（この列のセルも削除されます）`)) {
+                    deleteColumn.mutate({ id: column.id, phaseId });
+                  }
+                }}
+              >
+                <Trash2Icon />
+              </Button>
+            )}
+          </div>
+        ),
         size: column.width,
         cell: ({ row }) => {
           const value = row.original.cells[column.id];
@@ -108,6 +139,25 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
           </div>
         );
       },
+    },
+    {
+      id: ADD_COLUMN_ID,
+      header: () => (
+        <AddColumnPopover
+          onCreate={(label, type) =>
+            createColumn.mutate({
+              phaseId,
+              label,
+              type,
+              sortOrder: columns.length,
+              existingRowIds: rows.map((r) => r.row.id),
+            })
+          }
+        />
+      ),
+      size: 36,
+      enableResizing: false,
+      cell: () => null,
     },
   ];
 
