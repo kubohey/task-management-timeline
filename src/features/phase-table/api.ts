@@ -45,6 +45,18 @@ export async function fetchTableCells(
 }
 
 // ============================================================
+// 列編集
+// ============================================================
+
+export type TableColumnPatch = Partial<Pick<TableColumnRecord, "width" | "label">>;
+
+export async function updateTableColumn(id: string, patch: TableColumnPatch) {
+  const supabase = createClient();
+  const { error } = await supabase.from("table_columns").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+// ============================================================
 // 行の追加・削除
 // ============================================================
 

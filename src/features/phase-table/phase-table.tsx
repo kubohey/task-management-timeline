@@ -5,10 +5,11 @@ import { getCoreRowModel, useLegacyTable, type LegacyColumnDef } from "@tanstack
 import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { CheckboxCell } from "./cells/checkbox-cell";
 import { SubtaskListCell } from "./cells/subtask-list-cell";
 import { TextCell } from "./cells/text-cell";
-import { useDeleteRow, useUpdateCell } from "./use-phase-table-mutations";
+import { useDeleteRow, useUpdateCell, useUpdateColumn } from "./use-phase-table-mutations";
 import type {
   CellValue,
   CheckboxCellValue,
@@ -33,6 +34,7 @@ const ACTIONS_COLUMN_ID = "__actions";
 export function PhaseTable({ phaseId, columns, rows }: PhaseTableProps) {
   const updateCell = useUpdateCell();
   const deleteRow = useDeleteRow();
+  const updateColumn = useUpdateColumn();
 
   const columnDefs: LegacyColumnDef<RowWithCells>[] = [
     ...columns.map(
@@ -73,6 +75,7 @@ export function PhaseTable({ phaseId, columns, rows }: PhaseTableProps) {
       id: ACTIONS_COLUMN_ID,
       header: "",
       size: 40,
+      enableResizing: false,
       cell: ({ row }) => (
         <Button
           type="button"
@@ -96,6 +99,18 @@ export function PhaseTable({ phaseId, columns, rows }: PhaseTableProps) {
     columns: columnDefs,
     getRowId: (row) => row.row.id,
     getCoreRowModel: getCoreRowModel(),
+    enableColumnResizing: true,
+    columnResizeMode: "onEnd",
+    onColumnSizingChange: (updater) => {
+      const prevSizing = Object.fromEntries(columns.map((c) => [c.id, c.width]));
+      const nextSizing = typeof updater === "function" ? updater(prevSizing) : updater;
+      for (const column of columns) {
+        const nextWidth = nextSizing[column.id];
+        if (typeof nextWidth === "number" && Math.round(nextWidth) !== column.width) {
+          updateColumn.mutate({ id: column.id, phaseId, patch: { width: Math.round(nextWidth) } });
+        }
+      }
+    },
   });
 
   return (
@@ -109,8 +124,18 @@ export function PhaseTable({ phaseId, columns, rows }: PhaseTableProps) {
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead key={header.id}>
+              <TableHead key={header.id} className="relative">
                 {flexRender(header.column.columnDef.header, header.getContext())}
+                {header.column.getCanResize() && (
+                  <div
+                    onMouseDown={header.getResizeHandler()}
+                    onTouchStart={header.getResizeHandler()}
+                    className={cn(
+                      "absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none",
+                      header.column.getIsResizing() ? "bg-primary" : "hover:bg-border",
+                    )}
+                  />
+                )}
               </TableHead>
             ))}
           </TableRow>

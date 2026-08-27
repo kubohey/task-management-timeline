@@ -44,3 +44,13 @@ export function useImportObsidianRows() {
     onSuccess: (_data, vars) => invalidate(vars.phaseId),
   });
 }
+
+export function useUpdateColumn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; phaseId: string; patch: api.TableColumnPatch }) =>
+      api.updateTableColumn(vars.id, vars.patch),
+    onSuccess: (_data, vars) =>
+      void queryClient.invalidateQueries({ queryKey: ["tableColumns", vars.phaseId] }),
+  });
+}
