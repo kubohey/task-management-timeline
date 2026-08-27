@@ -1,9 +1,19 @@
 import { createClient } from "@/lib/supabase/client";
-import type { GroupRecord, PhaseRecord, PhaseStatus, ProjectRecord } from "./types";
+import type { GroupRecord, PhaseRecord, PhaseStatusRecord, ProjectRecord } from "./types";
 
 // ============================================================
 // 取得
 // ============================================================
+
+export async function fetchPhaseStatuses(): Promise<PhaseStatusRecord[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("phase_statuses")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
 
 export async function fetchGroups(): Promise<GroupRecord[]> {
   const supabase = createClient();
@@ -123,9 +133,7 @@ export async function insertPhase(input: {
   if (error) throw error;
 }
 
-export type PhasePatch = Partial<Pick<PhaseRecord, "name" | "sort_order">> & {
-  status?: PhaseStatus | null;
-};
+export type PhasePatch = Partial<Pick<PhaseRecord, "name" | "sort_order" | "status_id">>;
 
 export async function updatePhase(id: string, patch: PhasePatch) {
   const supabase = createClient();
@@ -136,5 +144,39 @@ export async function updatePhase(id: string, patch: PhasePatch) {
 export async function deletePhase(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("phases").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ============================================================
+// phase_statuses（Phaseに付与できるstatusのユーザー定義一覧）
+// ============================================================
+
+export async function insertPhaseStatus(input: {
+  userId: string;
+  name: string;
+  color: string;
+  sortOrder: number;
+}) {
+  const supabase = createClient();
+  const { error } = await supabase.from("phase_statuses").insert({
+    user_id: input.userId,
+    name: input.name,
+    color: input.color,
+    sort_order: input.sortOrder,
+  });
+  if (error) throw error;
+}
+
+export type PhaseStatusPatch = Partial<Pick<PhaseStatusRecord, "name" | "color" | "sort_order">>;
+
+export async function updatePhaseStatus(id: string, patch: PhaseStatusPatch) {
+  const supabase = createClient();
+  const { error } = await supabase.from("phase_statuses").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deletePhaseStatus(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("phase_statuses").delete().eq("id", id);
   if (error) throw error;
 }

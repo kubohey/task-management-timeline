@@ -51,8 +51,10 @@ tags: [spec, task-management-timeline]
   - Projectのトグル → Phaseを折りたたみ
   - Phaseにトグルは不要（`Table`ボタンがトグルの代わり）
 - status機能
-  - Phaseに `active` / `always` / `next` のいずれかのタグを付与できる
-  - statusでソートできる
+  - Phaseに、ユーザーが自由に追加・編集（名前・色）・削除・並び替えできるstatusタグを1つ付与できる
+    （当初はactive/always/nextの3値固定だったが、Phase7以降ユーザー要望により可変な一覧に変更）
+  - statusでソートできる（並び順はstatus管理画面での並び替え順に従う）
+  - statusで絞り込み（表示/非表示）できる
 
 ### 2.2 Phase内タスク表
 
@@ -109,7 +111,7 @@ tags: [spec, task-management-timeline]
 
 - 複数デバイスから同時に開いた場合、他デバイスでの変更が即座に画面へ反映される
 - 実装方式：Supabase Realtime（Postgres Changes）を主要テーブルに対して購読
-  - 対象：`groups` / `projects` / `phases` / `table_columns` / `table_rows` / `table_cells` / `task_placements`
+  - 対象：`groups` / `projects` / `phases` / `phase_statuses` / `table_columns` / `table_rows` / `table_cells` / `task_placements`
 - クライアント側は React Query 等でのキャッシュ管理 ＋ Realtimeイベント受信時にキャッシュを更新する構成
 - 競合解決方針：**Last-Write-Wins**（CRDT/OTのような操作変換は実装しない）
   - 個人が複数デバイスを使い分ける利用形態を前提とし、同時編集の即時反映により「気づかず上書きされる」リスクを下げることで十分と判断
@@ -125,7 +127,11 @@ groups (id, parent_group_id nullable, user_id, name, color, order, is_collapsed)
 
 projects (id, group_id, name, order, is_collapsed)
 
-phases (id, project_id, name, status[active|always|next] nullable, order)
+phases (id, project_id, name, status_id nullable, order)
+
+phase_statuses (id, user_id, name, color, order)
+  └─ Phaseに付与できるstatusのユーザー定義一覧（当初のactive/always/next固定3値から変更）。
+     phases.status_idはここへの参照（on delete set null）
 
 table_columns (id, phase_id, key, label, type[checkbox|text|note_rich|subtask_list],
                width, order)
@@ -228,7 +234,7 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 - [x] Phaseテーブル（4列固定）の表示・編集・行追加
 - [x] Obsidianテーブルの貼り付けインポート
 - [x] 行→タイムラインへのドラッグ登録（ツールチップでタスク名フル表示）
-- [x] statusタグ（active/always/next）の付与とソート
+- [x] statusタグの付与とソート（当初はactive/always/next固定、Phase7以降ユーザー定義の可変な一覧に変更）
 - [x] 土日祝の色分け
 - [ ] ログイン（サインアップ無効化）
 - [ ] RLSによるデータ保護
@@ -273,3 +279,5 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-27 | Phase 6完了。「Obsidianへコピー」ボタンでPhaseテーブル全体をObsidian形式のMarkdown表としてクリップボードにコピーできるように実装。備考（リッチテキスト）・サブタスクの箇条書き/チェックリストは`・`始まりのプレーンテキストに変換（太字は`**text**`、ハイライトは`==text==`）。列の追加にも対応した汎用シリアライザ（obsidian-export.ts） |
 | 2026-08-27 | ユーザー要望により追加実装：(1)タイムラインの空き日付セルをクリックしてその場でタスクを直接カレンダー登録できる逆方向フロー（Phase表にも新しい行として反映）、(2)カレンダー上のタスクチップの色をPhaseが属するProjectの背景色に統一。あわせて、Phase表から行を削除した際にタイムライン側のチップ表示が即座に更新されない不具合（taskPlacementsキャッシュの無効化漏れ）を修正 |
 | 2026-08-27 | Phase 7（表示切替・仕上げ）実装。表示スケールに日（基準日中心の2週間）・年（基準日を含む年の全日付）を追加し月と切替可能に、ツールバーのラベル・前後移動・「今日」ボタンもスケールに追従。年表示は列数が365〜366と多くなるためTanStack Virtualで横方向に仮想化し、実際にDOMへ描画する日付を画面内＋オーバースキャン分に限定（タイムライン全体のcontextから日付の可視範囲を配信）。全画面表示（Fullscreen API、Escでの終了にも同期）、Phaseのstatusによる表示フィルタ（並び替えとは別に、非表示にするstatusをトグルできるバッジUI）を追加。あわせて、Group/Project/Phase各行の横スクロール用コンテナ（`flex items-stretch`）がデフォルトで`width:auto`のためビューポート幅に収まってしまい、年表示のように総幅がビューポートを超えて実際にスクロールが発生する場面でサイドバーのsticky固定が途中から効かなくなる不具合を発見・修正（`w-max`を付与してコンテンツ全幅に広げる）。月表示までは総幅がビューポート内に収まっていたため表面化していなかった潜在バグ |
+| 2026-08-28 | Phase7続き。sticky固定の幅を仮想化の計算値ではなくスクロール状態に依存しない固定値から明示的に指定するよう変更し、スクロール中に一瞬崩れる余地を排除。年表示・日表示で月をまたぐ際に迷子にならないよう、タイムラインヘッダーに月ラベル行を追加。日/月/年いずれの表示を開いた時・スケール切替時・「今日」ボタン押下時にも今日の日付がカレンダー中央付近に来るようスクロール位置を自動調整し（通常のprev/next移動では発火しない）、今日の日付列を明るい緑・半透明でハイライトするように変更 |
+| 2026-08-28 | ユーザー要望により、Phaseのstatusを固定3値（active/always/next）から、ユーザーが任意の数だけ追加・削除・名前変更・色変更・並び替えできる可変な一覧に変更。新設した`phase_statuses`テーブル（ユーザーごと）への参照として`phases.status_id`を追加し、旧`status`列（text + check制約）は廃止。ツールバーに「status管理」ダイアログを新設（DBマイグレーション`supabase/migrations/0004_phase_statuses.sql`はユーザー側で適用が必要、既存データは自動移行される） |

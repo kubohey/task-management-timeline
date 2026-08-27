@@ -97,8 +97,8 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
               style={{ width: labelWidth }}
             />
             <StatusSelect
-              status={phase.status}
-              onChange={(status) => updatePhase.mutate({ id: phase.id, patch: { status } })}
+              statusId={phase.status_id}
+              onChange={(status_id) => updatePhase.mutate({ id: phase.id, patch: { status_id } })}
             />
             <div className="ml-auto flex items-center gap-0.5">
               <Button

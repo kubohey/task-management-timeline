@@ -9,41 +9,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { PhaseStatus } from "./types";
-
-export const STATUS_LABELS: Record<PhaseStatus, string> = {
-  active: "active",
-  always: "always",
-  next: "next",
-};
-
-export const STATUS_STYLES: Record<PhaseStatus, string> = {
-  active: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
-  always: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
-  next: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-};
-
-/** statusソート時の並び順（active → next → always、未設定は最後）。 */
-export const STATUS_SORT_ORDER: Record<string, number> = {
-  active: 0,
-  next: 1,
-  always: 2,
-};
+import { usePhaseStatuses } from "./phase-statuses-context";
 
 interface StatusSelectProps {
-  status: PhaseStatus | null;
-  onChange: (status: PhaseStatus | null) => void;
+  statusId: string | null;
+  onChange: (statusId: string | null) => void;
 }
 
-/** Phaseのstatus（active/always/next）を付与・変更するドロップダウン。 */
-export function StatusSelect({ status, onChange }: StatusSelectProps) {
+/**
+ * Phaseのstatus（ユーザー定義、phase_statusesテーブル）を付与・変更するドロップダウン。
+ * status自体の追加・名前変更・色変更・削除は`PhaseStatusManager`（ツールバー）で行う。
+ */
+export function StatusSelect({ statusId, onChange }: StatusSelectProps) {
+  const statuses = usePhaseStatuses();
+  const current = statuses.find((s) => s.id === statusId) ?? null;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button">
-          {status ? (
-            <Badge className={cn("cursor-pointer", STATUS_STYLES[status])}>
-              {STATUS_LABELS[status]}
+          {current ? (
+            <Badge
+              className={cn("cursor-pointer text-foreground")}
+              style={{ backgroundColor: current.color }}
+            >
+              {current.name}
             </Badge>
           ) : (
             <Badge variant="outline" className="cursor-pointer text-muted-foreground">
@@ -53,14 +43,23 @@ export function StatusSelect({ status, onChange }: StatusSelectProps) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        {(Object.keys(STATUS_LABELS) as PhaseStatus[]).map((key) => (
-          <DropdownMenuItem key={key} onSelect={() => onChange(key)}>
-            {status === key ? <CheckIcon className="size-3.5" /> : <span className="size-3.5" />}
-            {STATUS_LABELS[key]}
+        {statuses.length === 0 && (
+          <div className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">
+            statusが未登録です。ツールバーの「status管理」から追加してください。
+          </div>
+        )}
+        {statuses.map((s) => (
+          <DropdownMenuItem key={s.id} onSelect={() => onChange(s.id)}>
+            {statusId === s.id ? <CheckIcon className="size-3.5" /> : <span className="size-3.5" />}
+            <span
+              className="size-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: s.color }}
+            />
+            {s.name}
           </DropdownMenuItem>
         ))}
         <DropdownMenuItem onSelect={() => onChange(null)}>
-          {!status ? <CheckIcon className="size-3.5" /> : <span className="size-3.5" />}
+          {!statusId ? <CheckIcon className="size-3.5" /> : <span className="size-3.5" />}
           未設定
         </DropdownMenuItem>
       </DropdownMenuContent>

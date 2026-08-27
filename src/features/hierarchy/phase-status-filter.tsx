@@ -2,50 +2,68 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useUiStore, type PhaseStatusFilterKey } from "@/store/ui-store";
-import { STATUS_LABELS, STATUS_STYLES } from "./status-select";
+import { useUiStore } from "@/store/ui-store";
+import { usePhaseStatuses } from "./phase-statuses-context";
 
-const FILTER_ORDER: PhaseStatusFilterKey[] = ["active", "next", "always", "none"];
-
-const FILTER_LABELS: Record<PhaseStatusFilterKey, string> = {
-  ...STATUS_LABELS,
-  none: "未設定",
-};
-
-const FILTER_STYLES: Record<PhaseStatusFilterKey, string> = {
-  ...STATUS_STYLES,
-  none: "bg-muted text-muted-foreground",
-};
+/** status未割り当てのPhaseを表すフィルターキー。 */
+const NONE_KEY = "none";
 
 /**
  * Phase一覧をstatusで絞り込むフィルター。バッジを押すたびに該当statusの表示/非表示を切り替える。
  * docs/spec.md §8 Phase7「statusによるソート/フィルタ」
  */
 export function PhaseStatusFilter() {
+  const statuses = usePhaseStatuses();
   const hiddenPhaseStatuses = useUiStore((s) => s.hiddenPhaseStatuses);
   const togglePhaseStatusFilter = useUiStore((s) => s.togglePhaseStatusFilter);
+
+  if (statuses.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-1 text-sm">
       <span className="text-muted-foreground">Phase絞り込み:</span>
-      {FILTER_ORDER.map((key) => {
-        const hidden = hiddenPhaseStatuses.includes(key);
+      {statuses.map((s) => {
+        const hidden = hiddenPhaseStatuses.includes(s.id);
         return (
           <button
-            key={key}
+            key={s.id}
             type="button"
-            onClick={() => togglePhaseStatusFilter(key)}
-            title={hidden ? `${FILTER_LABELS[key]}を表示する` : `${FILTER_LABELS[key]}を非表示にする`}
+            onClick={() => togglePhaseStatusFilter(s.id)}
+            title={hidden ? `${s.name}を表示する` : `${s.name}を非表示にする`}
           >
             <Badge
               variant={hidden ? "outline" : "default"}
-              className={cn("cursor-pointer", !hidden && FILTER_STYLES[key], hidden && "text-muted-foreground opacity-50")}
+              className={cn(
+                "cursor-pointer",
+                !hidden && "text-foreground",
+                hidden && "text-muted-foreground opacity-50",
+              )}
+              style={hidden ? undefined : { backgroundColor: s.color }}
             >
-              {FILTER_LABELS[key]}
+              {s.name}
             </Badge>
           </button>
         );
       })}
+      <button
+        type="button"
+        onClick={() => togglePhaseStatusFilter(NONE_KEY)}
+        title={
+          hiddenPhaseStatuses.includes(NONE_KEY) ? "未設定を表示する" : "未設定を非表示にする"
+        }
+      >
+        <Badge
+          variant={hiddenPhaseStatuses.includes(NONE_KEY) ? "outline" : "secondary"}
+          className={cn(
+            "cursor-pointer",
+            hiddenPhaseStatuses.includes(NONE_KEY) && "text-muted-foreground opacity-50",
+          )}
+        >
+          未設定
+        </Badge>
+      </button>
     </div>
   );
 }

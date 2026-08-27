@@ -3,8 +3,11 @@ import { create } from "zustand";
 
 export type TimelineScale = "day" | "month" | "year";
 export type PhaseSortMode = "manual" | "status";
-/** Phase一覧の表示フィルタで扱うキー。status未設定分は"none"で表す。 */
-export type PhaseStatusFilterKey = "active" | "next" | "always" | "none";
+/**
+ * Phase一覧の表示フィルタで扱うキー。phase_statuses.idそのもの、
+ * またはstatus未設定分を表す"none"のいずれか。
+ */
+export type PhaseStatusFilterKey = string;
 
 interface UiState {
   timelineScale: TimelineScale;

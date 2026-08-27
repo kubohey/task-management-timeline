@@ -21,6 +21,8 @@ Supabaseダッシュボードの `SQL Editor` で `supabase/migrations/` 配下�
   - Phase作成時、デフォルト4列（チェックボックス／タスク名／備考／サブタスク）が自動生成される
   - 主要テーブルはRealtime配信対象として登録済み
 - `0002_add_project_color.sql`：Projectタブの背景色編集用に `projects.color` 列を追加
+- `0003_note_rich_type.sql`：Phaseテーブルの備考列をリッチテキスト（note_rich／Tiptap JSON）化
+- `0004_phase_statuses.sql`：Phaseのstatusを固定3値（active/always/next）から `phase_statuses` テーブルによるユーザー定義の可変な一覧に変更。既存データは自動移行される
 
 ### 3. サインアップの無効化・自分のアカウント作成
 
@@ -72,6 +74,8 @@ src/
 supabase/migrations/
   0001_init.sql           … 初期スキーマ・RLS・Realtime設定
   0002_add_project_color.sql … Projectタブの背景色列を追加
+  0003_note_rich_type.sql … 備考列をリッチテキスト化
+  0004_phase_statuses.sql … statusをユーザー定義の可変な一覧に変更
 docs/spec.md              … 仕様書
 ```
 

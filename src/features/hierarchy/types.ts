@@ -1,4 +1,13 @@
-export type PhaseStatus = "active" | "always" | "next";
+/** ユーザーが自由に追加・編集・削除できるPhaseのstatus定義。 */
+export interface PhaseStatusRecord {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface GroupRecord {
   id: string;
@@ -27,7 +36,7 @@ export interface PhaseRecord {
   id: string;
   project_id: string;
   name: string;
-  status: PhaseStatus | null;
+  status_id: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/features/shared/color-picker";
@@ -14,7 +14,7 @@ import { useUiStore } from "@/store/ui-store";
 import type { ProjectNode } from "./build-tree";
 import { INDENT_STEP_PX } from "./constants";
 import { PhaseRow } from "./phase-row";
-import { STATUS_SORT_ORDER } from "./status-select";
+import { usePhaseStatuses } from "./phase-statuses-context";
 import { useCreatePhase, useDeleteProject, useUpdateProject } from "./use-hierarchy-mutations";
 
 interface ProjectRowProps {
@@ -31,18 +31,23 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
   const createPhase = useCreatePhase();
   const phaseSortMode = useUiStore((s) => s.phaseSortMode);
   const hiddenPhaseStatuses = useUiStore((s) => s.hiddenPhaseStatuses);
+  const statuses = usePhaseStatuses();
+  const statusSortOrder = useMemo(
+    () => new Map(statuses.map((s) => [s.id, s.sort_order])),
+    [statuses],
+  );
 
   const sortedPhases =
     phaseSortMode === "status"
       ? [...project.phases].sort(
           (a, b) =>
-            (STATUS_SORT_ORDER[a.status ?? ""] ?? 99) -
-            (STATUS_SORT_ORDER[b.status ?? ""] ?? 99),
+            (statusSortOrder.get(a.status_id ?? "") ?? 99) -
+            (statusSortOrder.get(b.status_id ?? "") ?? 99),
         )
       : project.phases;
 
   const phases = sortedPhases.filter(
-    (phase) => !hiddenPhaseStatuses.includes(phase.status ?? "none"),
+    (phase) => !hiddenPhaseStatuses.includes(phase.status_id ?? "none"),
   );
 
   const phaseLabelWidth = useUniformLabelWidth(phases.map((p) => p.name));
