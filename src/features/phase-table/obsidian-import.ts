@@ -18,21 +18,28 @@ function findFirstTable(root: Root): Table | undefined {
   return root.children.find((child): child is Table => child.type === "table");
 }
 
+/**
+ * セル内の改行はGFM表内では<br>（生のHTML）として表現されるため、実際の改行文字に戻す。
+ * タスク名・備考欄はtextareaで表示するため、これで見た目通りの複数行になる。
+ */
+function normalizeCellBreaks(text: string): string {
+  return text.replace(/<br\s*\/?>/gi, "\n");
+}
+
 function cellText(cell: TableCell | undefined): string {
-  return cell ? mdastToString(cell).trim() : "";
+  return cell ? normalizeCellBreaks(mdastToString(cell)).trim() : "";
 }
 
 const SUBTASK_LINE_RE = /^-?\s*\[( |x|X)\]\s*(.*)$/;
 
 /**
  * サブタスクセルの中身をsubtask項目一覧に分解する。
- * 表のセル内に複数行がある場合、ObsidianはHTMLの<br>で表現するため、それで分割する。
  * `- [ ] label` / `- [x] label` 形式の行をsubtask化し、形式に合わない行は
  * 未チェックのsubtaskとしてそのまま扱う。docs/spec.md §2.2
  */
 function parseSubtasks(rawText: string): SubtaskItem[] {
   return rawText
-    .split(/<br\s*\/?>/gi)
+    .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => {
