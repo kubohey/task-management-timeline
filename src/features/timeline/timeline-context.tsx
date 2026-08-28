@@ -12,7 +12,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { isToday } from "date-fns";
 import { useUiStore } from "@/store/ui-store";
-import { DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
+import { DAY_SCALE_WIDTH_PX, DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
 import { getTimelineDays } from "./date-utils";
 
 interface TimelineDaysContextValue {
@@ -26,12 +26,17 @@ interface TimelineDaysContextValue {
   /** endIndexより後の非表示分を埋めるスペーサー幅（px）。 */
   trailingWidth: number;
   /**
-   * カレンダー部分（サイドバーを除く）の総幅（px）＝days.length×DAY_WIDTH_PX。
+   * カレンダー部分（サイドバーを除く）の総幅（px）＝days.length×dayWidth。
    * leadingWidth+可視セル分+trailingWidthの合計と数学的には一致するはずだが、
    * 各行のsticky領域の基準幅にはスクロール状態に依存しないこちらの値を使い、
    * スクロール中の仮想化再計算タイミングとは無関係に常に正しい幅を保証する。
    */
   totalWidth: number;
+  /**
+   * 1日あたりのセル幅（px）。日（2週間）表示は列数が少なく余白ができやすいため、
+   * 月/年表示より広い幅を使う（docs/spec.md §2.4）。
+   */
+  dayWidth: number;
 }
 
 const TimelineDaysContext = createContext<TimelineDaysContextValue | null>(null);
@@ -54,25 +59,42 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
   const anchorDate = useUiStore((s) => s.timelineAnchorDate);
   const scale = useUiStore((s) => s.timelineScale);
   const days = useMemo(() => getTimelineDays(scale, anchorDate), [scale, anchorDate]);
+  const dayWidth = scale === "day" ? DAY_SCALE_WIDTH_PX : DAY_WIDTH_PX;
 
   const virtualizer = useVirtualizer({
     count: days.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => DAY_WIDTH_PX,
+    estimateSize: () => dayWidth,
     horizontal: true,
     overscan: 14,
   });
 
-  const totalWidth = days.length * DAY_WIDTH_PX;
+  const totalWidth = days.length * dayWidth;
 
   // virtualizerの戻り値はスクロールのたびに変わるためuseMemoでの恩恵は薄く、素直に毎レンダー計算する。
   let value: TimelineDaysContextValue;
   if (scale !== "year") {
-    value = { days, startIndex: 0, endIndex: days.length - 1, leadingWidth: 0, trailingWidth: 0, totalWidth };
+    value = {
+      days,
+      startIndex: 0,
+      endIndex: days.length - 1,
+      leadingWidth: 0,
+      trailingWidth: 0,
+      totalWidth,
+      dayWidth,
+    };
   } else {
     const virtualItems = virtualizer.getVirtualItems();
     if (virtualItems.length === 0) {
-      value = { days, startIndex: 0, endIndex: -1, leadingWidth: 0, trailingWidth: totalWidth, totalWidth };
+      value = {
+        days,
+        startIndex: 0,
+        endIndex: -1,
+        leadingWidth: 0,
+        trailingWidth: totalWidth,
+        totalWidth,
+        dayWidth,
+      };
     } else {
       const first = virtualItems[0];
       const last = virtualItems[virtualItems.length - 1];
@@ -83,6 +105,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
         leadingWidth: first.start,
         trailingWidth: totalWidth - last.end,
         totalWidth,
+        dayWidth,
       };
     }
   }
@@ -107,12 +130,13 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
     if (visibleCalendarWidth <= 0) {
       return;
     }
-    const todayCenterPos = todayIndex * DAY_WIDTH_PX + DAY_WIDTH_PX / 2;
+    const todayCenterPos = todayIndex * dayWidth + dayWidth / 2;
     const targetScrollLeft = todayCenterPos - visibleCalendarWidth / 2;
     const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
     container.scrollLeft = Math.min(Math.max(0, targetScrollLeft), maxScrollLeft);
     // daysはdaysRef経由で最新値を参照するため依存配列には含めない（含めるとprev/next移動のたびに発火してしまう）。
-  }, [scrollToTodaySignal, scrollContainerRef]);
+    // dayWidthはscaleにのみ依存し、prev/next移動では変化しないため依存配列に含めてよい。
+  }, [scrollToTodaySignal, scrollContainerRef, dayWidth]);
 
   return <TimelineDaysContext value={value}>{children}</TimelineDaysContext>;
 }

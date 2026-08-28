@@ -5,7 +5,6 @@ import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { XIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { NoteRichCellValue, SubtaskListCellValue } from "@/features/phase-table/types";
-import { DAY_WIDTH_PX } from "@/features/timeline/constants";
 import { cn } from "@/lib/utils";
 import { TaskMemoPopover } from "./task-memo-popover";
 import type { TaskPlacementRecord } from "./types";
@@ -16,6 +15,8 @@ interface PlacementChipProps {
   phaseId: string;
   /** 表示中の月の日付一覧における開始日のインデックス。 */
   dayIndex: number;
+  /** 1日あたりのセル幅（px）。表示スケールによって変わる（docs/spec.md §2.4）。 */
+  dayWidth: number;
   label: string;
   /** このPhaseが属するProjectの色。未設定の場合は既定のプライマリカラーを使う。 */
   color: string | null;
@@ -36,6 +37,7 @@ export function PlacementChip({
   placement,
   phaseId,
   dayIndex,
+  dayWidth,
   label,
   color,
   noteColumnId,
@@ -72,7 +74,7 @@ export function PlacementChip({
 
     const handleMove = (moveEvent: PointerEvent) => {
       const deltaPx = moveEvent.clientX - startX;
-      setResizeDeltaDays(Math.round(deltaPx / DAY_WIDTH_PX));
+      setResizeDeltaDays(Math.round(deltaPx / dayWidth));
     };
 
     const handleUp = () => {
@@ -125,8 +127,8 @@ export function PlacementChip({
               color ? "text-foreground" : "bg-primary text-primary-foreground",
             )}
             style={{
-              left: previewDayIndex * DAY_WIDTH_PX,
-              width: previewSpanDays * DAY_WIDTH_PX,
+              left: previewDayIndex * dayWidth,
+              width: previewSpanDays * dayWidth,
               backgroundColor: color ?? undefined,
             }}
           >

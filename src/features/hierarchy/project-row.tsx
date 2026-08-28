@@ -132,7 +132,10 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
         <CalendarRowCells />
       </div>
       {!project.is_collapsed && phases.length > 0 && (
-        <div className="flex flex-col gap-1 py-1">
+        <div
+          className="flex flex-col gap-1 py-1"
+          style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}
+        >
           {phases.map((phase) => (
             <PhaseRow
               key={phase.id}

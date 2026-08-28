@@ -13,7 +13,6 @@ import type {
   TableColumnRecord,
   TextCellValue,
 } from "@/features/phase-table/types";
-import { DAY_WIDTH_PX } from "@/features/timeline/constants";
 import { getDayBgColorClass } from "@/features/timeline/date-utils";
 import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { cn } from "@/lib/utils";
@@ -36,6 +35,7 @@ interface DayCellProps {
   phaseId: string;
   columns: TableColumnRecord[];
   sortOrder: number;
+  dayWidth: number;
 }
 
 /**
@@ -43,7 +43,7 @@ interface DayCellProps {
  * その日にタスクを直接追加できる（表からドラッグする方向の逆）。
  * 追加すると表側にも新しい行として反映される（docs/spec.md §2.2の逆方向）。
  */
-function DayCell({ id, date, className, phaseId, columns, sortOrder }: DayCellProps) {
+function DayCell({ id, date, className, phaseId, columns, sortOrder, dayWidth }: DayCellProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [open, setOpen] = useState(false);
   const [taskName, setTaskName] = useState("");
@@ -84,7 +84,7 @@ function DayCell({ id, date, className, phaseId, columns, sortOrder }: DayCellPr
             className,
             isOver && "bg-primary/20",
           )}
-          style={{ width: DAY_WIDTH_PX }}
+          style={{ width: dayWidth }}
         />
       </PopoverTrigger>
       <PopoverContent className="w-56" align="start">
@@ -117,7 +117,7 @@ function DayCell({ id, date, className, phaseId, columns, sortOrder }: DayCellPr
  * docs/spec.md §2.2・§2.3
  */
 export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseTimelineCellsProps) {
-  const { days, startIndex, endIndex, leadingWidth, trailingWidth } = useTimelineDays();
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth, dayWidth } = useTimelineDays();
   const { placements } = useTaskPlacements(phaseId);
 
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
@@ -140,6 +140,7 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
           phaseId={phaseId}
           columns={columns}
           sortOrder={rows.length}
+          dayWidth={dayWidth}
         />
       ))}
       {trailingWidth > 0 && <div className="shrink-0" style={{ width: trailingWidth }} />}
@@ -161,6 +162,7 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
             placement={placement}
             phaseId={phaseId}
             dayIndex={dayIndex}
+            dayWidth={dayWidth}
             label={label}
             color={chipColor}
             noteColumnId={noteColumnId}

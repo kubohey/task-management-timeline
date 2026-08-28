@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { InlineCreateButton } from "@/features/shared/inline-create-button";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
 import { toggleFullscreen, useFullscreenSync } from "@/features/shared/use-fullscreen";
-import { TimelineDaysProvider } from "@/features/timeline/timeline-context";
+import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
+import { TimelineDaysProvider, useTimelineDays } from "@/features/timeline/timeline-context";
 import { TimelineHeader } from "@/features/timeline/timeline-header";
 import { TimelineToolbar } from "@/features/timeline/timeline-toolbar";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/ui-store";
+import type { GroupNode } from "./build-tree";
 import { buildHierarchyTree } from "./build-tree";
 import { GroupRow } from "./group-row";
 import { PhaseStatusFilter } from "./phase-status-filter";
@@ -21,6 +23,36 @@ import { useHierarchyData } from "./use-hierarchy-data";
 
 interface HierarchyTreeProps {
   userId: string;
+}
+
+interface GroupsColumnProps {
+  tree: GroupNode[];
+  rootLabelWidth: number;
+  userId: string;
+}
+
+/**
+ * トップレベルGroup一覧の折りたたみ配下ラッパー。幅を明示的に指定する必要がある
+ * （group-row.tsxのコメント参照）ため、useTimelineDays()を呼べるようHierarchyTree
+ * 本体とは別コンポーネントに切り出す（HierarchyTree自身はTimelineDaysProviderを
+ * 返す側であり、Provider配下では実行されないためこのフックを直接呼べない）。
+ */
+function GroupsColumn({ tree, rootLabelWidth, userId }: GroupsColumnProps) {
+  const { totalWidth } = useTimelineDays();
+  return (
+    <div className="flex flex-col gap-1 py-1" style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}>
+      {tree.map((group) => (
+        <GroupRow
+          key={group.id}
+          group={group}
+          depth={0}
+          labelWidth={rootLabelWidth}
+          userId={userId}
+          allowSubgroup
+        />
+      ))}
+    </div>
+  );
 }
 
 /** 階層構造（Group/Subgroup/Project/Phase）のCRUD一式を提供するルートコンポーネント。 */
@@ -122,18 +154,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
                 Groupがまだありません。「+ Group」から作成してください。
               </p>
             ) : (
-              <div className="flex flex-col gap-1 py-1">
-                {tree.map((group) => (
-                  <GroupRow
-                    key={group.id}
-                    group={group}
-                    depth={0}
-                    labelWidth={rootLabelWidth}
-                    userId={userId}
-                    allowSubgroup
-                  />
-                ))}
-              </div>
+              <GroupsColumn tree={tree} rootLabelWidth={rootLabelWidth} userId={userId} />
             )}
           </div>
         </TimelineDaysProvider>

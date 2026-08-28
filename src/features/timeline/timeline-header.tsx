@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
+import { SIDEBAR_WIDTH_PX } from "./constants";
 import { getDayBgColorClass, getDayTextColorClass, getWeekdayLabel } from "./date-utils";
 import { useTimelineDays } from "./timeline-context";
 
@@ -37,7 +37,8 @@ function buildMonthGroups(days: Date[], startIndex: number, endIndex: number): M
  * 固定される（2軸固定、docs/spec.md §6）。
  */
 export function TimelineHeader() {
-  const { days, startIndex, endIndex, leadingWidth, trailingWidth, totalWidth } = useTimelineDays();
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth, totalWidth, dayWidth } =
+    useTimelineDays();
   const monthGroups = useMemo(
     () => buildMonthGroups(days, startIndex, endIndex),
     [days, startIndex, endIndex],
@@ -59,7 +60,7 @@ export function TimelineHeader() {
             <div
               key={group.key}
               className="shrink-0 truncate border-r py-0.5 text-center text-xs font-medium text-muted-foreground"
-              style={{ width: group.span * DAY_WIDTH_PX }}
+              style={{ width: group.span * dayWidth }}
             >
               {group.label}
             </div>
@@ -82,7 +83,7 @@ export function TimelineHeader() {
                 getDayTextColorClass(day),
                 getDayBgColorClass(day),
               )}
-              style={{ width: DAY_WIDTH_PX }}
+              style={{ width: dayWidth }}
             >
               <span>{day.getDate()}</span>
               <span>{getWeekdayLabel(day)}</span>

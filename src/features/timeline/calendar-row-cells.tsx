@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { DAY_WIDTH_PX } from "./constants";
 import { getDayBgColorClass } from "./date-utils";
 import { useTimelineDays } from "./timeline-context";
 
@@ -11,7 +10,7 @@ import { useTimelineDays } from "./timeline-context";
  * タスクバーの表示・ドラッグ登録はPhase 3/4で追加する。
  */
 export function CalendarRowCells() {
-  const { days, startIndex, endIndex, leadingWidth, trailingWidth } = useTimelineDays();
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth, dayWidth } = useTimelineDays();
 
   return (
     <div className="flex">
@@ -20,7 +19,7 @@ export function CalendarRowCells() {
         <div
           key={day.toISOString()}
           className={cn("shrink-0 border-r", getDayBgColorClass(day))}
-          style={{ width: DAY_WIDTH_PX }}
+          style={{ width: dayWidth }}
         />
       ))}
       {trailingWidth > 0 && <div className="shrink-0" style={{ width: trailingWidth }} />}

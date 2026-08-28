@@ -133,7 +133,10 @@ export function GroupRow({ group, depth, labelWidth, userId, allowSubgroup }: Gr
         <CalendarRowCells />
       </div>
       {!group.is_collapsed && hasChildren && (
-        <div className="flex flex-col gap-1 py-1">
+        <div
+          className="flex flex-col gap-1 py-1"
+          style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}
+        >
           {group.subgroups.map((subgroup) => (
             <GroupRow
               key={subgroup.id}
