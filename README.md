@@ -40,6 +40,17 @@ npm run dev
 
 [http://localhost:3000](http://localhost:3000) にアクセス。未ログインの場合は `/login` にリダイレクトされる。
 
+### 5. E2Eスモークテスト（任意）
+
+Playwrightによる最小限のスモークテスト（`e2e/`）を用意している。ログイン画面の表示・未ログイン時のリダイレクトのみを確認する、データを変更しない安全なテスト。
+
+```bash
+npx playwright install chromium   # 初回のみ
+npm run test:e2e
+```
+
+ログイン後の画面表示まで確認したい場合は、`.env.local` に自分のアカウントの `E2E_EMAIL` / `E2E_PASSWORD` を設定すると該当テストも実行される（未設定の場合は自動的にスキップ）。`npm run dev` が未起動でも自動的に立ち上がる。
+
 ## ディレクトリ構成（Phase 1時点）
 
 ```

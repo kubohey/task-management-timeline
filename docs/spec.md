@@ -1,7 +1,7 @@
 ---
 title: Task Management Timeline 仕様書
 created: 2026-08-27
-status: in-progress (Phase 7完了、Phase 8「デプロイ・安定化」未着手)
+status: Phase 0〜8完了（本番デプロイ済み）
 tags: [spec, task-management-timeline]
 ---
 
@@ -282,3 +282,4 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-28 | Phase7続き。sticky固定の幅を仮想化の計算値ではなくスクロール状態に依存しない固定値から明示的に指定するよう変更し、スクロール中に一瞬崩れる余地を排除。年表示・日表示で月をまたぐ際に迷子にならないよう、タイムラインヘッダーに月ラベル行を追加。日/月/年いずれの表示を開いた時・スケール切替時・「今日」ボタン押下時にも今日の日付がカレンダー中央付近に来るようスクロール位置を自動調整し（通常のprev/next移動では発火しない）、今日の日付列を明るい緑・半透明でハイライトするように変更 |
 | 2026-08-28 | ユーザー要望により、Phaseのstatusを固定3値（active/always/next）から、ユーザーが任意の数だけ追加・削除・名前変更・色変更・並び替えできる可変な一覧に変更。新設した`phase_statuses`テーブル（ユーザーごと）への参照として`phases.status_id`を追加し、旧`status`列（text + check制約）は廃止。ツールバーに「status管理」ダイアログを新設（DBマイグレーション`supabase/migrations/0004_phase_statuses.sql`はユーザー側で適用が必要、既存データは自動移行される） |
 | 2026-08-28 | MVP範囲のチェックリストが実態とずれていたため修正：ログイン・RLS・Realtime同期はPhase 0（基盤構築）の時点で実装済みだったが未チェックのままだったので反映。Phase 0〜7が完了し、残るはPhase 8（デプロイ・安定化：Vercelデプロイ、簡易テスト）のみの状態 |
+| 2026-08-28 | Phase 8（デプロイ・安定化）完了。GitHubリポジトリを作成しVercelと連携、本番デプロイに成功（未ログイン時の`/login`リダイレクト・ログイン後のタイムライン表示を本番URLで確認済み）。Playwrightによる最小限のE2Eスモークテスト（`e2e/`）を追加：認証ガード（未ログイン時のリダイレクト・ログイン画面表示）は常時実行、ログイン後の表示確認は`.env.local`に`E2E_EMAIL`/`E2E_PASSWORD`を設定した場合のみ実行（実データを変更する操作は行わないため安全）。`npm run test:e2e`で実行可能 |
