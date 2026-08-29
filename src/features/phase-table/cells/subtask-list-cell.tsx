@@ -42,26 +42,26 @@ export function SubtaskListCell({ value, onChange }: SubtaskListCellProps) {
               })
             }
           />
-          <InlineEditableText
-            value={item.label}
-            editing={editingIndex === index}
-            onEditingChange={(next) => setEditingIndex(next ? index : null)}
-            onSubmit={(label) =>
-              onChange({
-                items: items.map((it, i) => (i === index ? { ...it, label } : it)),
-              })
-            }
-            className="flex-1 text-sm"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
+          {/* ✏️ボタンを押さなくても、文字をクリックすればその場で編集できるように
+              する（ユーザー要望：「✏マークを押さなくても編集できるようにしたい」）。
+              編集中はInlineEditableText側がInputを描画するため、このonClickは
+              クリックしてカーソル位置を合わせるだけで支障ない。 */}
+          <div
+            className="flex-1 cursor-text"
             onClick={() => setEditingIndex(index)}
-            title="編集"
           >
-            ✏️
-          </Button>
+            <InlineEditableText
+              value={item.label}
+              editing={editingIndex === index}
+              onEditingChange={(next) => setEditingIndex(next ? index : null)}
+              onSubmit={(label) =>
+                onChange({
+                  items: items.map((it, i) => (i === index ? { ...it, label } : it)),
+                })
+              }
+              className="block w-full text-sm"
+            />
+          </div>
           <Button
             type="button"
             variant="ghost"
