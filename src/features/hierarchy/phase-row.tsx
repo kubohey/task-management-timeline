@@ -59,6 +59,9 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
   const { totalWidth } = useTimelineDays();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [draggingTaskName, setDraggingTaskName] = useState<string | null>(null);
+  // 表内の行並び替え中は横方向のオートスクロールを止めるためのフラグ。
+  // 詳細はDndContextのautoScrollに渡している箇所のコメント参照。
+  const [isReordering, setIsReordering] = useState(false);
 
   // このDndContextは2種類のドラッグを扱う：
   // ①表の行のグリップ（`row:${rowId}`）→カレンダー日付セル（`day:...`）で予定登録
@@ -69,10 +72,12 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
     if (typeof id === "string" && id.startsWith("row:")) {
       setDraggingTaskName((event.active.data.current?.taskName as string | undefined) || "(無題のタスク)");
     }
+    setIsReordering(typeof id === "string" && id.startsWith(TABLE_ROW_SORTABLE_PREFIX));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setDraggingTaskName(null);
+    setIsReordering(false);
     const activeId = event.active.id;
     const overId = event.over?.id;
     if (typeof activeId !== "string" || typeof overId !== "string") {
@@ -112,7 +117,15 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setDraggingTaskName(null)}
+      onDragCancel={() => {
+        setDraggingTaskName(null);
+        setIsReordering(false);
+      }}
+      // 表の行並び替え（縦方向のみの操作）中は、ページ全体を包む横スクロール可能な
+      // 祖先コンテナ（hierarchy-tree.tsxのscrollContainerRef）まで巻き込まれて
+      // カレンダーが横スクロールしてしまうのを防ぐため、横方向のしきい値を0にする。
+      // カレンダー登録ドラッグ（行→日付セル）のときは従来どおりの挙動のままにする。
+      autoScroll={{ threshold: { x: isReordering ? 0 : 0.2, y: 0.2 } }}
     >
       <div>
         {/* 行の幅を明示的に指定する理由はgroup-row.tsxのコメント参照。 */}
