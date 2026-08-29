@@ -111,6 +111,29 @@ tags: [spec, task-management-timeline]
   `- [ ]` 形式のチェックボックスのままクリップボードにコピーできる（Phase内タスク表のコピーと
   異なり、表セル内埋め込みではないため `・` への変換は行わない）
 
+### 2.6 ロードマップタブ
+
+週単位でのタスク管理を、メインのガントチャート（日単位・横方向）とは軸を入れ替えた
+別タブとして提供する（`/roadmap`）。
+
+- レイアウト：1列目が「週単位」（月曜始まり・日曜終わりの週ラベル）、2列目以降が
+  Projectごとの列。週は縦方向にスクロールして閲覧する（今日を含む週を中心に、
+  前後合わせて約1年分の固定範囲を表示し、初回表示時は今週の少し手前までスクロールする）
+- **列の追加**：既存の階層にあるProjectを選んで列を作成する。列ラベルはProject名で
+  初期化されるが、以後は独立して自由編集でき、実際のProject名は変わらない
+- **列の幅**：列見出しの右端をドラッグして自由に変更できる
+- **タスクの埋め込み**：週セルをクリックすると既存のProjectまたはPhaseを検索して選べる
+  ピッカーが開き、選んだ項目でタスクブロックを1週間分作成する
+  - ブロック内の文字列は自由に編集でき、Phase表・カレンダー側のプロジェクト名や
+    Phase名は変更されない（デイリータスクノートと同じ「埋め込み時に名前を引き継ぐが、
+    以後は独立コピー」という方針）
+  - ブロックの背景色だけは埋め込み元の色と連動し続ける。Phaseを埋め込んだ場合は、
+    そのPhaseが属するProjectの色を使う（メインのガントチャートでタスクチップの色を
+    Projectに揃えているのと同じ方針、§2.2参照）。カレンダー形式のガントチャート側で
+    Projectの色を変更すると、ロードマップ側のブロック色にも反映される
+  - ブロックの上下端をドラッグすることで、期間（週数）を伸縮できる
+  - 同じ列内で週範囲が重なる複数のブロックは、重ならないようレーン分けして横並びに表示する
+
 ---
 
 ## 3. 認証・アクセス制御
@@ -126,7 +149,7 @@ tags: [spec, task-management-timeline]
 
 - 複数デバイスから同時に開いた場合、他デバイスでの変更が即座に画面へ反映される
 - 実装方式：Supabase Realtime（Postgres Changes）を主要テーブルに対して購読
-  - 対象：`groups` / `projects` / `phases` / `phase_statuses` / `table_columns` / `table_rows` / `table_cells` / `task_placements` / `daily_notes`
+  - 対象：`groups` / `projects` / `phases` / `phase_statuses` / `table_columns` / `table_rows` / `table_cells` / `task_placements` / `daily_notes` / `roadmap_columns` / `roadmap_tasks`
 - クライアント側は React Query 等でのキャッシュ管理 ＋ Realtimeイベント受信時にキャッシュを更新する構成
 - 競合解決方針：**Last-Write-Wins**（CRDT/OTのような操作変換は実装しない）
   - 個人が複数デバイスを使い分ける利用形態を前提とし、同時編集の即時反映により「気づかず上書きされる」リスクを下げることで十分と判断
@@ -169,9 +192,21 @@ daily_notes (id, user_id, date, content: Tiptap JSON)
   └─ デイリータスクノート（§2.5）の本文。unique(user_id, date)で日付ごとに1件。
      初回作成時のみtask_placementsから組み立てたタスク一覧を雛形として書き込むが、
      保存後はPhase表への参照を持たない独立した本文としてそのまま保持する
+
+roadmap_columns (id, user_id, project_id nullable, label, width, order)
+  └─ ロードマップタブ（§2.6）の列。project_idは列作成時に選んだProjectへの参照
+     （on delete set null）で、色連動には使わずlabel初期化のためだけに保持する。
+     labelは以後独立して自由編集できる
+
+roadmap_tasks (id, column_id, source_type[project|phase], source_project_id nullable,
+               source_phase_id nullable, label, start_week, end_week)
+  └─ ロードマップの週セルに埋め込んだタスクブロック。埋め込み時にsource_project_id /
+     source_phase_idを保持し、背景色はここ経由で埋め込み元の現在の色（Phaseの場合は
+     そのPhaseが属するProjectの色）と連動し続ける。labelは埋め込み元の名前で初期化
+     されるが、以後は独立して自由編集でき、Phase表・カレンダー側には反映されない
 ```
 
-**RLS方針**：`groups.user_id = auth.uid()` を起点に、`projects/phases/table_rows/table_cells/task_placements` は親子関係（`group_id → project_id → phase_id → row_id`）を辿って同一ユーザーのデータのみアクセス可能とする。各テーブルに個別の `user_id` は持たせない。
+**RLS方針**：`groups.user_id = auth.uid()` を起点に、`projects/phases/table_rows/table_cells/task_placements` は親子関係（`group_id → project_id → phase_id → row_id`）を辿って同一ユーザーのデータのみアクセス可能とする。各テーブルに個別の `user_id` は持たせない。`roadmap_columns`は`daily_notes`同様`user_id`を直接持つ起点テーブル、`roadmap_tasks`は`roadmap_columns`経由で所有権を判定する。
 
 ---
 
@@ -270,6 +305,7 @@ daily_notes (id, user_id, date, content: Tiptap JSON)
 - [x] パフォーマンス最適化（年表示の横方向仮想化、Phase 7で実装）
 - [x] タイムラインに登録済みのタスクをドラッグで引き伸ばして複数日にまたがる予定にする（Phase 6で実装）
 - [x] デイリータスクノート（日付クリックで開く右サイドバー、§2.5で実装）
+- [x] ロードマップタブ（週単位×Project列のガントチャート、§2.6で実装）
 
 ---
 
@@ -306,3 +342,4 @@ daily_notes (id, user_id, date, content: Tiptap JSON)
 | 2026-08-28 | Phase 8（デプロイ・安定化）完了。GitHubリポジトリを作成しVercelと連携、本番デプロイに成功（未ログイン時の`/login`リダイレクト・ログイン後のタイムライン表示を本番URLで確認済み）。Playwrightによる最小限のE2Eスモークテスト（`e2e/`）を追加：認証ガード（未ログイン時のリダイレクト・ログイン画面表示）は常時実行、ログイン後の表示確認は`.env.local`に`E2E_EMAIL`/`E2E_PASSWORD`を設定した場合のみ実行（実データを変更する操作は行わないため安全）。`npm run test:e2e`で実行可能 |
 | 2026-08-29 | ユーザー要望により、Phase内タスク表の行並び替え（ドラッグ＆ドロップ、`@dnd-kit/sortable`）を追加。あわせて、その並び替えドラッグ中にページ全体の横スクロールコンテナが巻き込まれカレンダーが横スクロールしてしまう不具合を修正（`autoScroll.threshold.x`をドラッグ種別に応じて切り替え） |
 | 2026-08-29 | デイリータスクノート（§2.5）を追加。タイムライン日付ヘッダーのクリックで開く右サイドバーは1枚の自由記述Tiptapノートで、初めて開いたときだけその日にカレンダー登録されたタスクを`プロジェクト名 → Phase名 → タスク名`のチェックリストとして本文に雛形挿入する（ユーザー要望により、以後はPhase表と独立し、ノート内での編集はPhase表側に反映されない設計に変更）。サイドバー幅はドラッグで可変。「Obsidianへコピー」で本文全体を`- [ ]`形式のまま1枚のMarkdownとしてコピーできる。新設`daily_notes`テーブル（DBマイグレーション`supabase/migrations/0005_daily_notes.sql`はユーザー側で適用が必要） |
+| 2026-08-29 | ロードマップタブ（§2.6）を新設（`/roadmap`）。メインのガントチャート（日単位・横方向）とは軸を入れ替え、週単位（月曜始まり）の行×Project単位の列で俯瞰する画面。列は既存Projectを選んで作成（ラベルは独立編集可能、実際のProject名は変わらない）、週セルには既存Project/Phaseを選んでタスクブロックを埋め込む（テキストは独立編集可能で埋め込み元に影響しないが、背景色だけは埋め込み元＝Phaseの場合はそのPhaseが属するProjectの色と連動し続ける）。ブロックはドラッグで期間（週数）を伸縮でき、重なるブロックはレーン分けして横並び表示、列幅もドラッグで可変。既存のガントチャート画面と共通のヘッダー（`AppHeader`）にタブを追加。新設`roadmap_columns`/`roadmap_tasks`テーブル（DBマイグレーション`supabase/migrations/0006_roadmap.sql`はユーザー側で適用が必要）。あわせて、複数箇所で使っていた「日付範囲が重なるアイテムをレーン分けする」ロジックを`features/shared/interval-lanes.ts`に共通化 |
