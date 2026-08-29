@@ -66,7 +66,12 @@ function WeekCell({ column, week, lane, projects, phases }: WeekCellProps) {
           style={{ height: WEEK_ROW_HEIGHT_PX }}
         />
       </PopoverTrigger>
-      <PopoverContent className="w-72" align="start">
+      {/* 週セルの中身（Project/Phase検索一覧）は縦に長くなりがちで、画面上方のセルで
+          開くと従来のside="bottom"（既定）では画面下方向に十分な余白があっても
+          Popover本体が画面外にはみ出すことがあった。セルの上下ではなく右横（画面端
+          付近では自動でleftへ反転）に開くようにする
+          （ユーザー要望：「プロジェクト選択画面をタスクを追加したいセルの横に配置して」）。 */}
+      <PopoverContent className="w-72" side="right" align="start" collisionPadding={8}>
         <RoadmapTaskPicker
           projects={projects}
           phases={phases}
