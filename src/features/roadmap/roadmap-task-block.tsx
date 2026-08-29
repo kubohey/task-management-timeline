@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { addWeeks, format, parseISO } from "date-fns";
-import { Trash2Icon } from "lucide-react";
+import { MoveIcon, Trash2Icon } from "lucide-react";
 import { ColorPicker } from "@/features/shared/color-picker";
 import { cn } from "@/lib/utils";
 import { useDeleteRoadmapTask, useUpdateRoadmapTask } from "./use-roadmap-mutations";
@@ -19,19 +19,21 @@ interface RoadmapTaskBlockProps {
   color: string | null;
 }
 
-type ResizeHandle = "start" | "end";
+type DragHandle = "start" | "end" | "move";
 
 /**
  * ロードマップの週セルに埋め込まれた1タスクブロック。
- * 上下端をドラッグして期間（週数）を伸縮でき（docs/spec.md §2.6）、テキストは
- * 直接編集できる（編集内容はPhase表・カレンダー側には反映されない独立コピー）。
+ * 上下端をドラッグして期間（週数）を伸縮でき（docs/spec.md §2.6）、左上の
+ * 移動ハンドル（MoveIcon）をドラッグすると期間はそのまま別の週へ移動できる
+ * （ユーザー要望：「セルをドラッグしてタスクを入れ替えられる機能」）。
+ * テキストは直接編集できる（編集内容はPhase表・カレンダー側には反映されない独立コピー）。
  * PlacementChip（メインのガントチャート、日単位・横方向）と同じ考え方の縦方向版。
  */
 export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: RoadmapTaskBlockProps) {
   const updateTask = useUpdateRoadmapTask();
   const deleteTask = useDeleteRoadmapTask();
-  const [activeHandle, setActiveHandle] = useState<ResizeHandle | null>(null);
-  const [resizeDeltaWeeks, setResizeDeltaWeeks] = useState(0);
+  const [activeHandle, setActiveHandle] = useState<DragHandle | null>(null);
+  const [deltaWeeks, setDeltaWeeks] = useState(0);
 
   const committedSpanWeeks = Math.max(
     1,
@@ -41,28 +43,30 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
   let previewStartIndex = startIndex;
   let previewSpanWeeks = committedSpanWeeks;
   if (activeHandle === "start") {
-    previewStartIndex = startIndex + resizeDeltaWeeks;
-    previewSpanWeeks = Math.max(1, committedSpanWeeks - resizeDeltaWeeks);
+    previewStartIndex = startIndex + deltaWeeks;
+    previewSpanWeeks = Math.max(1, committedSpanWeeks - deltaWeeks);
   } else if (activeHandle === "end") {
-    previewSpanWeeks = Math.max(1, committedSpanWeeks + resizeDeltaWeeks);
+    previewSpanWeeks = Math.max(1, committedSpanWeeks + deltaWeeks);
+  } else if (activeHandle === "move") {
+    previewStartIndex = startIndex + deltaWeeks;
   }
 
-  const startResize = (handle: ResizeHandle) => (e: React.PointerEvent) => {
+  const startDrag = (handle: DragHandle) => (e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
     const startY = e.clientY;
     setActiveHandle(handle);
-    setResizeDeltaWeeks(0);
+    setDeltaWeeks(0);
 
     const handleMove = (moveEvent: PointerEvent) => {
       const deltaPx = moveEvent.clientY - startY;
-      setResizeDeltaWeeks(Math.round(deltaPx / WEEK_ROW_HEIGHT_PX));
+      setDeltaWeeks(Math.round(deltaPx / WEEK_ROW_HEIGHT_PX));
     };
     const handleUp = () => {
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
       setActiveHandle(null);
-      setResizeDeltaWeeks((delta) => {
+      setDeltaWeeks((delta) => {
         if (delta !== 0) {
           const start = parseISO(task.start_week);
           const end = parseISO(task.end_week);
@@ -72,11 +76,20 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
               id: task.id,
               patch: { start_week: format(newStart > end ? end : newStart, "yyyy-MM-dd") },
             });
-          } else {
+          } else if (handle === "end") {
             const newEnd = addWeeks(end, delta);
             updateTask.mutate({
               id: task.id,
               patch: { end_week: format(newEnd < start ? start : newEnd, "yyyy-MM-dd") },
+            });
+          } else {
+            // move：期間（週数）はそのまま、開始・終了を同じ週数だけまとめてずらす。
+            updateTask.mutate({
+              id: task.id,
+              patch: {
+                start_week: format(addWeeks(start, delta), "yyyy-MM-dd"),
+                end_week: format(addWeeks(end, delta), "yyyy-MM-dd"),
+              },
             });
           }
         }
@@ -104,13 +117,23 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
     >
       <div
         className="absolute top-0 left-0 z-10 h-1.5 w-full cursor-ns-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
-        onPointerDown={startResize("start")}
+        onPointerDown={startDrag("start")}
       />
       {/* hidden/group-hover:flex（displayの出し入れ）ではなく、常時displayさせて
           opacityだけで見せ隠しする。ColorPickerのPopoverはポータル表示され
           group（このブロック）の外にDOM上存在するため、displayで消してしまうと
           ポインタがポップオーバーへ移動した瞬間にトリガーごと消えて再表示が
           繰り返され、位置計算が暴れて開けなくなる（ユーザー報告の表示ブレ）。 */}
+      <div className="absolute top-0.5 left-0.5 z-10 flex opacity-0 group-hover:opacity-100">
+        <button
+          type="button"
+          className="cursor-grab touch-none rounded bg-background/70 p-1 hover:bg-background active:cursor-grabbing"
+          title="ドラッグして移動"
+          onPointerDown={startDrag("move")}
+        >
+          <MoveIcon className="size-3" />
+        </button>
+      </div>
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 rounded bg-background/70 opacity-0 group-hover:opacity-100">
         {task.source_type === "manual" && (
           <ColorPicker
@@ -146,7 +169,7 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
       />
       <div
         className="absolute bottom-0 left-0 z-10 h-1.5 w-full cursor-ns-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
-        onPointerDown={startResize("end")}
+        onPointerDown={startDrag("end")}
       />
     </div>
   );

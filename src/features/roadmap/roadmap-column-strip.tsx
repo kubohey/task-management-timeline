@@ -86,7 +86,7 @@ export function RoadmapColumnStrip({
   projectsById,
   phasesById,
 }: RoadmapColumnStripProps) {
-  const { laneById, laneCount } = useMemo(() => assignRoadmapLanes(tasks), [tasks]);
+  const { laneById, laneCountById } = useMemo(() => assignRoadmapLanes(tasks), [tasks]);
   const weekIndexByKey = useMemo(() => {
     const map = new Map<string, number>();
     weeks.forEach((week, index) => map.set(weekKey(week), index));
@@ -121,7 +121,7 @@ export function RoadmapColumnStrip({
             task={task}
             startIndex={startIndex}
             lane={laneById[task.id] ?? 0}
-            laneCount={laneCount}
+            laneCount={laneCountById[task.id] ?? 1}
             color={resolveRoadmapTaskColor(task, projectsById, phasesById)}
           />
         );
