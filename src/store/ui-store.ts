@@ -44,6 +44,12 @@ interface UiState {
   ganttZoomPercent: number;
   /** ロードマップ画面の拡大縮小率（%、100が等倍）。 */
   roadmapZoomPercent: number;
+  /**
+   * ロードマップで複数選択中のタスクブロックid一覧。選択済みのブロックをドラッグ
+   * すると、選択中のブロックすべてを同じ週数だけまとめて移動する
+   * （ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」）。
+   */
+  selectedRoadmapTaskIds: string[];
   setTimelineScale: (scale: TimelineScale) => void;
   setFullscreen: (value: boolean) => void;
   setPhaseSortMode: (mode: PhaseSortMode) => void;
@@ -55,6 +61,8 @@ interface UiState {
   setDailyNoteWidth: (width: number) => void;
   setGanttZoomPercent: (value: number) => void;
   setRoadmapZoomPercent: (value: number) => void;
+  toggleSelectedRoadmapTask: (id: string) => void;
+  clearSelectedRoadmapTasks: () => void;
 }
 
 /**
@@ -72,6 +80,7 @@ export const useUiStore = create<UiState>((set) => ({
   dailyNoteWidth: DAILY_NOTE_DEFAULT_WIDTH_PX,
   ganttZoomPercent: 100,
   roadmapZoomPercent: 100,
+  selectedRoadmapTaskIds: [],
   setTimelineScale: (timelineScale) => set({ timelineScale }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
   setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
@@ -91,4 +100,11 @@ export const useUiStore = create<UiState>((set) => ({
     }),
   setGanttZoomPercent: (value) => set({ ganttZoomPercent: clampZoom(value) }),
   setRoadmapZoomPercent: (value) => set({ roadmapZoomPercent: clampZoom(value) }),
+  toggleSelectedRoadmapTask: (id) =>
+    set((state) => ({
+      selectedRoadmapTaskIds: state.selectedRoadmapTaskIds.includes(id)
+        ? state.selectedRoadmapTaskIds.filter((taskId) => taskId !== id)
+        : [...state.selectedRoadmapTaskIds, id],
+    })),
+  clearSelectedRoadmapTasks: () => set({ selectedRoadmapTaskIds: [] }),
 }));

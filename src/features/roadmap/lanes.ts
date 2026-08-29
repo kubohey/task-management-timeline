@@ -29,10 +29,20 @@ export function assignRoadmapLanes(tasks: RoadmapTaskRecord[]): {
     if (cluster.length === 0) {
       return;
     }
-    // クラスター内だけで区間スケジューリングの貪欲法：開始週順に見て、
+    // クラスターの境界判定（重なりが途切れる/続く）は開始週の実際の時系列で行うが、
+    // クラスター内でどのタスクを先にレーンへ詰めるか＝左右どちらに来るかは
+    // lane_order（既定0、タイブレークにid）で決める。これにより、開始週が
+    // 同じ・近いタスク同士でも、ユーザーが◀▶で左右を入れ替えられるようにする。
+    const orderedCluster = [...cluster].sort((a, b) => {
+      if (a.lane_order !== b.lane_order) {
+        return a.lane_order - b.lane_order;
+      }
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+    // レーン内だけで区間スケジューリングの貪欲法：上記の順で見て、
     // 空いている最初のレーンに詰めていく。
     const laneEndDates: Date[] = [];
-    for (const task of cluster) {
+    for (const task of orderedCluster) {
       const start = parseISO(task.start_week);
       const end = parseISO(task.end_week);
       const laneIndex = laneEndDates.findIndex((laneEnd) => isAfter(start, laneEnd));

@@ -137,10 +137,15 @@ tags: [spec, task-management-timeline]
     Projectに揃えているのと同じ方針、§2.2参照）。カレンダー形式のガントチャート側で
     Projectの色を変更すると、ロードマップ側のブロック色にも反映される
   - ブロックの上下端をドラッグすることで、期間（週数）を伸縮できる
-  - ブロック左上の移動ハンドルをドラッグすると、期間（週数）はそのままで別の週へ移動できる
+  - ブロック右上（削除ボタンの下）の移動ハンドルをドラッグすると、期間（週数）はそのままで
+    別の週へ移動できる
+  - ブロック左上のチェックボックスで複数選択でき、選択中のブロックのどれかをドラッグ移動
+    すると、選択中のブロックすべてを同じ週数だけまとめて移動できる（列をまたいで選択してもよい）
   - 同じ列内で週範囲が重なる複数のブロックは、重ならないようレーン分けして横並びに表示する
     （並列表示）。レーン数は列全体ではなく、時間的に重なり合うブロックの塊ごとに独立して
     数えるため、離れた時期にある単独ブロックまで幅が狭くなることはない
+  - 並列表示になっているブロックは、下端の◀▶ボタンで左右（レーン）を入れ替えられる
+    （隣接するブロックとlane_orderを交換する方式）
 
 ---
 
@@ -206,12 +211,16 @@ roadmap_columns (id, user_id, project_id nullable, label, width, order)
      （on delete set null）で、色連動には使わずlabel初期化のためだけに保持する。
      labelは以後独立して自由編集できる
 
-roadmap_tasks (id, column_id, source_type[project|phase], source_project_id nullable,
-               source_phase_id nullable, label, start_week, end_week)
+roadmap_tasks (id, column_id, source_type[project|phase|manual], source_project_id nullable,
+               source_phase_id nullable, color nullable, label, start_week, end_week, lane_order)
   └─ ロードマップの週セルに埋め込んだタスクブロック。埋め込み時にsource_project_id /
      source_phase_idを保持し、背景色はここ経由で埋め込み元の現在の色（Phaseの場合は
      そのPhaseが属するProjectの色）と連動し続ける。labelは埋め込み元の名前で初期化
-     されるが、以後は独立して自由編集でき、Phase表・カレンダー側には反映されない
+     されるが、以後は独立して自由編集でき、Phase表・カレンダー側には反映されない。
+     source_type='manual'（既存Project/Phaseを選ばず直接書き込んだブロック）は
+     埋め込み元を持たないため、colorに自分で選んだ色を直接保持する。
+     lane_order（既定0）は同じ列内で週範囲が重なる（並列表示になる）ブロック同士の
+     左右の並び順を決める値で、左右入れ替え操作で隣同士の値を交換する
 ```
 
 **RLS方針**：`groups.user_id = auth.uid()` を起点に、`projects/phases/table_rows/table_cells/task_placements` は親子関係（`group_id → project_id → phase_id → row_id`）を辿って同一ユーザーのデータのみアクセス可能とする。各テーブルに個別の `user_id` は持たせない。`roadmap_columns`は`daily_notes`同様`user_id`を直接持つ起点テーブル、`roadmap_tasks`は`roadmap_columns`経由で所有権を判定する。
@@ -356,3 +365,5 @@ roadmap_tasks (id, column_id, source_type[project|phase], source_project_id null
 | 2026-08-29 | ユーザー要望により、ガントチャートのPhase一覧に表示順の番号（1始まり）を追加。「Phase並び替え：追加順」表示のときは、各Phase行に▲▼ボタンを追加し、隣のPhaseとsort_orderを入れ替えて上下に並び替えられるようにした（status順表示のときは並びがstatusに従うため▲▼は出さない） |
 | 2026-08-29 | ユーザー要望「ドラッグでの入れ替えをしてもらえると助かる」により、Phase並び替え（追加順表示時）にドラッグ&ドロップも追加。Phase表の行並び替え（SortableTableRow）と同じ考え方で、project-row.tsx側にPhase一覧用のDndContext/SortableContextを新設し、PhaseRowの外側にドラッグ専用のSortablePhaseRowラッパーを追加（PhaseRow自身が持つ別のDndContext――カレンダー登録用ドラッグ・表内行並び替え用ドラッグ――とは独立）。ドロップ時は`reorderPhases`（新設）で並び順どおりsort_orderを振り直し、楽観的更新で即座に画面へ反映する。▲▼ボタンと共存し、両方とも「Phase並び替え：追加順」表示のときだけ利用できる |
 | 2026-08-29 | ユーザー要望「セルをドラッグしてタスクを入れ替えられる機能」「同じプロジェクト内で別のタスクを並行して行う予定の場合、タスクの並列表示をしてほしい」により、ロードマップのタスクブロックに移動ドラッグ（左上の移動ハンドル、期間はそのままで別の週へ移動）を追加。あわせて、同じ列内で重なるブロックの並列表示（レーン分け）のレーン数計算を、列全体で一律だった方式から、時間的に重なり合うブロックの塊（クラスター）ごとに独立して数える方式へ改善し、離れた時期にある単独ブロックまで無駄に幅が狭くなる問題を解消（`assignRoadmapLanes`が`laneCountById`をブロックごとに返すよう変更） |
+| 2026-08-29 | ユーザー報告「セルのドラッグボタンが文字に被る」により、移動ハンドルの位置を左上→右上（削除ボタンの下）に変更しテキストエリアと重ならないようにした |
+| 2026-08-29 | ユーザー要望「同じプロジェクト内で並列に置いたタスクを左右に入れ替えられない？」「複数選択して同時にセルのドラッグができると嬉しい」により2点追加。①並列表示（レーン分け）のブロックに左右入れ替え（◀▶）を追加：新設`lane_order`列（既定0）を持たせ、クラスター内のレーン割り当て順を開始週ではなくlane_orderで決めるようにし、隣接ブロックとの値の交換で左右を入れ替えられるようにした（DBマイグレーション`supabase/migrations/0008_roadmap_lane_order.sql`はユーザー側で適用が必要）。②タスクブロックに複数選択（左上のチェックボックス、`ui-store`の`selectedRoadmapTaskIds`）を追加し、選択中のブロックのどれかを移動ドラッグすると選択中のブロックすべてを同じ週数だけまとめて移動できるようにした（列をまたいだ選択も可） |

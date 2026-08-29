@@ -8,7 +8,7 @@ import { assignRoadmapLanes } from "./lanes";
 import { resolveRoadmapTaskColor } from "./resolve-task-color";
 import { RoadmapTaskBlock } from "./roadmap-task-block";
 import { RoadmapTaskPicker, type RoadmapTaskSelection } from "./roadmap-task-picker";
-import { useCreateRoadmapTask } from "./use-roadmap-mutations";
+import { useCreateRoadmapTask, useUpdateRoadmapTask } from "./use-roadmap-mutations";
 import { isCurrentWeek, weekKey, WEEK_ROW_HEIGHT_PX } from "./week-utils";
 import type { RoadmapColumnRecord, RoadmapTaskRecord } from "./types";
 
@@ -20,6 +20,8 @@ interface RoadmapColumnStripProps {
   phases: PhaseRecord[];
   projectsById: Map<string, ProjectRecord>;
   phasesById: Map<string, PhaseRecord>;
+  /** タスクブロックのドラッグ移動を確定する（複数選択中なら選択分すべてまとめて移動、RoadmapView側で判定）。 */
+  onMoveTask: (taskId: string, deltaWeeks: number) => void;
 }
 
 interface WeekCellProps {
@@ -85,13 +87,34 @@ export function RoadmapColumnStrip({
   phases,
   projectsById,
   phasesById,
+  onMoveTask,
 }: RoadmapColumnStripProps) {
+  const updateTask = useUpdateRoadmapTask();
   const { laneById, laneCountById } = useMemo(() => assignRoadmapLanes(tasks), [tasks]);
   const weekIndexByKey = useMemo(() => {
     const map = new Map<string, number>();
     weeks.forEach((week, index) => map.set(weekKey(week), index));
     return map;
   }, [weeks]);
+
+  // 並列表示（同じ週範囲で重なるブロック）の左右を入れ替える。隣のレーンにいる
+  // タスク（週範囲が重なっているもの＝同じクラスター）を探し、lane_orderを
+  // 交換する（PhaseStatusManager/Phase一覧の▲▼と同じ、隣同士の値を入れ替える方式）。
+  // ユーザー要望：「同じプロジェクト内で並列に置いたタスクを左右に入れ替えられない？」
+  const swapLane = (task: RoadmapTaskRecord, direction: -1 | 1) => {
+    const targetLane = (laneById[task.id] ?? 0) + direction;
+    const neighbor = tasks.find(
+      (t) =>
+        t.id !== task.id &&
+        (laneById[t.id] ?? 0) === targetLane &&
+        !(t.end_week < task.start_week || t.start_week > task.end_week),
+    );
+    if (!neighbor) {
+      return;
+    }
+    updateTask.mutate({ id: task.id, patch: { lane_order: neighbor.lane_order } });
+    updateTask.mutate({ id: neighbor.id, patch: { lane_order: task.lane_order } });
+  };
 
   return (
     <div
@@ -115,14 +138,19 @@ export function RoadmapColumnStrip({
           // 表示範囲外の週に開始する（固定範囲の外）タスクは表示しない。
           return null;
         }
+        const currentLane = laneById[task.id] ?? 0;
+        const currentLaneCount = laneCountById[task.id] ?? 1;
         return (
           <RoadmapTaskBlock
             key={task.id}
             task={task}
             startIndex={startIndex}
-            lane={laneById[task.id] ?? 0}
-            laneCount={laneCountById[task.id] ?? 1}
+            lane={currentLane}
+            laneCount={currentLaneCount}
             color={resolveRoadmapTaskColor(task, projectsById, phasesById)}
+            onMoveCommit={(deltaWeeks) => onMoveTask(task.id, deltaWeeks)}
+            onMoveLeft={currentLane > 0 ? () => swapLane(task, -1) : undefined}
+            onMoveRight={currentLane < currentLaneCount - 1 ? () => swapLane(task, 1) : undefined}
           />
         );
       })}

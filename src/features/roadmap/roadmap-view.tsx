@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { addWeeks, format, parseISO } from "date-fns";
 import { ZoomControl } from "@/features/shared/zoom-control";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/ui-store";
@@ -8,6 +9,7 @@ import { AddRoadmapColumnButton } from "./add-roadmap-column-button";
 import { RoadmapColumnHeader } from "./roadmap-column-header";
 import { RoadmapColumnStrip } from "./roadmap-column-strip";
 import { useRoadmapData } from "./use-roadmap-data";
+import { useUpdateRoadmapTask } from "./use-roadmap-mutations";
 import {
   formatWeekLabel,
   getRoadmapWeeks,
@@ -37,6 +39,8 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
   const headerRef = useRef<HTMLDivElement>(null);
   const roadmapZoomPercent = useUiStore((s) => s.roadmapZoomPercent);
   const setRoadmapZoomPercent = useUiStore((s) => s.setRoadmapZoomPercent);
+  const selectedRoadmapTaskIds = useUiStore((s) => s.selectedRoadmapTaskIds);
+  const updateTask = useUpdateRoadmapTask();
   // scrollTopは実際の画面ピクセル（zoom適用後）で動くため、初回スクロール計算にも
   // zoom倍率を掛ける必要がある。マウント時点の値だけ使えばよいためrefで参照する。
   const zoomRef = useRef(roadmapZoomPercent);
@@ -55,6 +59,36 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
     }
     return map;
   }, [tasks]);
+  const tasksById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
+
+  // ドラッグ移動の確定処理。ドラッグされたタスクが複数選択中の一員なら、選択中の
+  // タスクすべてを同じ週数だけまとめて移動する（列をまたいで選択されていてもよい）。
+  // そうでなければ、そのタスク単体だけを移動する（従来どおり）。
+  // ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」
+  const moveTaskGroup = (draggedTaskId: string, deltaWeeks: number) => {
+    if (deltaWeeks === 0) {
+      return;
+    }
+    const idsToMove =
+      selectedRoadmapTaskIds.includes(draggedTaskId) && selectedRoadmapTaskIds.length > 1
+        ? selectedRoadmapTaskIds
+        : [draggedTaskId];
+    for (const id of idsToMove) {
+      const task = tasksById.get(id);
+      if (!task) {
+        continue;
+      }
+      const start = parseISO(task.start_week);
+      const end = parseISO(task.end_week);
+      updateTask.mutate({
+        id,
+        patch: {
+          start_week: format(addWeeks(start, deltaWeeks), "yyyy-MM-dd"),
+          end_week: format(addWeeks(end, deltaWeeks), "yyyy-MM-dd"),
+        },
+      });
+    }
+  };
 
   // 初回表示時、今週が画面のちょうど中央あたりに来るようスクロール位置を調整する
   // （メインのガントチャートの「今日」自動スクロールと同じ考え方、縦方向版）。
@@ -151,6 +185,7 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
                   phases={phases}
                   projectsById={projectsById}
                   phasesById={phasesById}
+                  onMoveTask={moveTaskGroup}
                 />
               ))}
             </div>

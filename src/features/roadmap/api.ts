@@ -86,7 +86,7 @@ export async function insertRoadmapTask(input: {
 }
 
 export type RoadmapTaskPatch = Partial<
-  Pick<RoadmapTaskRecord, "label" | "start_week" | "end_week" | "color">
+  Pick<RoadmapTaskRecord, "label" | "start_week" | "end_week" | "color" | "lane_order">
 >;
 
 export async function updateRoadmapTask(id: string, patch: RoadmapTaskPatch) {

@@ -39,6 +39,12 @@ export interface RoadmapTaskRecord {
   start_week: string;
   /** 終了週の月曜日（yyyy-MM-dd、start_week以上）。 */
   end_week: string;
+  /**
+   * 週範囲が重なる（並列表示になる）タスク同士のレーン割り当て順を決めるための値
+   * （既定0）。開始週だけでは左右の順序をユーザーが制御できないため、左右の
+   * 入れ替え操作（RoadmapTaskBlockの◀▶）でこの値を隣同士のタスクと交換する。
+   */
+  lane_order: number;
   created_at: string;
   updated_at: string;
 }
