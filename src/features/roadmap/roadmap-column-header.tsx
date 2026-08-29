@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2Icon } from "lucide-react";
+import { Columns3Icon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { cn } from "@/lib/utils";
@@ -74,6 +74,17 @@ export function RoadmapColumnHeader({ column }: RoadmapColumnHeaderProps) {
         onClick={() => setEditing(true)}
       >
         ✏️
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        title="サブ列を追加（列内にもう1列増やす）"
+        onClick={() =>
+          updateColumn.mutate({ id: column.id, patch: { lane_count: column.lane_count + 1 } })
+        }
+      >
+        <Columns3Icon />
       </Button>
       <Button
         type="button"

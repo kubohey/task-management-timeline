@@ -60,13 +60,16 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
     return map;
   }, [tasks]);
   const tasksById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
+  const columnsById = useMemo(() => new Map(columns.map((c) => [c.id, c])), [columns]);
 
   // ドラッグ移動の確定処理。ドラッグされたタスクが複数選択中の一員なら、選択中の
-  // タスクすべてを同じ週数だけまとめて移動する（列をまたいで選択されていてもよい）。
+  // タスクすべてを同じ週数・サブ列数だけまとめて移動する（列をまたいで選択されていてもよい）。
   // そうでなければ、そのタスク単体だけを移動する（従来どおり）。
   // ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」
-  const moveTaskGroup = (draggedTaskId: string, deltaWeeks: number) => {
-    if (deltaWeeks === 0) {
+  // サブ列（lane）は各タスクが属する列のlane_countの範囲にクランプする
+  // （選択したタスクが別々の列にまたがっていて、列ごとにサブ列数が異なっていてもよい）。
+  const moveTaskGroup = (draggedTaskId: string, deltaWeeks: number, deltaLanes: number) => {
+    if (deltaWeeks === 0 && deltaLanes === 0) {
       return;
     }
     const idsToMove =
@@ -80,11 +83,14 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
       }
       const start = parseISO(task.start_week);
       const end = parseISO(task.end_week);
+      const laneCount = columnsById.get(task.column_id)?.lane_count ?? 1;
+      const nextLane = Math.min(laneCount - 1, Math.max(0, task.lane + deltaLanes));
       updateTask.mutate({
         id,
         patch: {
           start_week: format(addWeeks(start, deltaWeeks), "yyyy-MM-dd"),
           end_week: format(addWeeks(end, deltaWeeks), "yyyy-MM-dd"),
+          lane: nextLane,
         },
       });
     }

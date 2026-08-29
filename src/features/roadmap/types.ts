@@ -10,6 +10,13 @@ export interface RoadmapColumnRecord {
   label: string;
   width: number;
   sort_order: number;
+  /**
+   * この列に表示するサブ列（列内の縦レーン）の数（既定1）。ヘッダーの「＋」で
+   * 増やせる。週範囲が重ならないタスク同士でも自動レーン計算だと横位置が揃わない
+   * ことがあったため、ユーザーが明示的にサブ列を増やし、タスクをドラッグで
+   * 好きなサブ列へ配置できるようにした（docs/spec.md §2.6）。
+   */
+  lane_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -40,11 +47,11 @@ export interface RoadmapTaskRecord {
   /** 終了週の月曜日（yyyy-MM-dd、start_week以上）。 */
   end_week: string;
   /**
-   * 週範囲が重なる（並列表示になる）タスク同士のレーン割り当て順を決めるための値
-   * （既定0）。開始週だけでは左右の順序をユーザーが制御できないため、左右の
-   * 入れ替え操作（RoadmapTaskBlockの◀▶）でこの値を隣同士のタスクと交換する。
+   * このタスクが置かれている列内のサブ列（0始まり）。roadmap_columns.lane_count
+   * の範囲内で、週セルへの埋め込み時に選んだサブ列、またはドラッグ移動で
+   * 変更した先のサブ列を保持する（自動計算ではなく明示的な値）。
    */
-  lane_order: number;
+  lane: number;
   created_at: string;
   updated_at: string;
 }

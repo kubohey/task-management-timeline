@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { addWeeks, format, parseISO } from "date-fns";
-import { ChevronLeftIcon, ChevronRightIcon, MoveIcon, Trash2Icon } from "lucide-react";
+import { MoveIcon, Trash2Icon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ColorPicker } from "@/features/shared/color-picker";
 import { useUiStore } from "@/store/ui-store";
@@ -15,15 +15,16 @@ interface RoadmapTaskBlockProps {
   task: RoadmapTaskRecord;
   /** 表示中の週一覧における開始週のインデックス。 */
   startIndex: number;
-  lane: number;
-  laneCount: number;
+  /** このタスクが属するサブ列の幅（px）。移動ドラッグの横方向の量（サブ列数）の計算に使う。 */
+  laneWidthPx: number;
   /** 埋め込み元Project/Phaseの現在の色（resolveRoadmapTaskColor参照）。 */
   color: string | null;
-  /** ドラッグ移動の確定（週数の差分）。複数選択中なら選択分すべてまとめて移動するかはRoadmapView側が判定する。 */
-  onMoveCommit: (deltaWeeks: number) => void;
-  /** 並列表示（同じ週範囲で重なるブロック）の左右入れ替え。隣に入れ替え先が無いときはundefined＝ボタン非表示。 */
-  onMoveLeft?: () => void;
-  onMoveRight?: () => void;
+  /**
+   * ドラッグ移動の確定（週数・サブ列数の差分）。複数選択中なら選択分すべてまとめて
+   * 移動するかはRoadmapView側が判定する。サブ列の範囲外にははみ出さないよう
+   * RoadmapView側でクランプする。
+   */
+  onMoveCommit: (deltaWeeks: number, deltaLanes: number) => void;
 }
 
 type ResizeHandle = "start" | "end";
@@ -31,26 +32,21 @@ type ResizeHandle = "start" | "end";
 /**
  * ロードマップの週セルに埋め込まれた1タスクブロック。
  * - 上下端をドラッグして期間（週数）を伸縮できる（docs/spec.md §2.6）
- * - 右上（削除ボタンの下）の移動ハンドル（MoveIcon）をドラッグすると、期間は
- *   そのまま別の週へ移動できる（ユーザー要望：「セルをドラッグしてタスクを
- *   入れ替えられる機能」。当初は左上に置いていたが文字に被るため右上へ移動）
+ * - 右上（削除ボタンの下）の移動ハンドル（MoveIcon）をドラッグすると、上下＝別の週、
+ *   左右＝別のサブ列（roadmap_columns.lane_count本のうちどれか）へ移動できる
+ *   （ユーザー要望：「任意の列のセルにタスクをドラッグできるようにしてほしい」）
  * - 左上のチェックボックスで複数選択でき、選択中のブロックのどれかをドラッグ
- *   すると選択中のブロックすべてを同じ週数だけまとめて移動する
+ *   すると選択中のブロックすべてを同じ週数・サブ列数だけまとめて移動する
  *   （ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」）
- * - 並列表示（同じ週範囲で重なるブロック）は下端の◀▶で左右を入れ替えられる
- *   （ユーザー要望：「並列に置いたタスクを左右に入れ替えられない？」）
  * テキストは直接編集できる（編集内容はPhase表・カレンダー側には反映されない独立コピー）。
  * PlacementChip（メインのガントチャート、日単位・横方向）と同じ考え方の縦方向版。
  */
 export function RoadmapTaskBlock({
   task,
   startIndex,
-  lane,
-  laneCount,
+  laneWidthPx,
   color,
   onMoveCommit,
-  onMoveLeft,
-  onMoveRight,
 }: RoadmapTaskBlockProps) {
   const updateTask = useUpdateRoadmapTask();
   const deleteTask = useDeleteRoadmapTask();
@@ -62,6 +58,8 @@ export function RoadmapTaskBlock({
   const [resizeDeltaWeeks, setResizeDeltaWeeks] = useState(0);
   const [isMoving, setIsMoving] = useState(false);
   const [moveDeltaWeeks, setMoveDeltaWeeks] = useState(0);
+  const [moveDeltaLanes, setMoveDeltaLanes] = useState(0);
+  const moveDeltaRef = useRef({ weeks: 0, lanes: 0 });
 
   const committedSpanWeeks = Math.max(
     1,
@@ -123,22 +121,31 @@ export function RoadmapTaskBlock({
   const startMove = (e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    const startX = e.clientX;
     const startY = e.clientY;
     setIsMoving(true);
     setMoveDeltaWeeks(0);
+    setMoveDeltaLanes(0);
+    // stateはReactの再レンダー用（見た目のライブプレビュー）なので、handleUp内で
+    // 読むとクロージャに捕まった古い値になりうる。確定処理では常に最新値を
+    // 参照できるrefの方を使う。
+    moveDeltaRef.current = { weeks: 0, lanes: 0 };
 
     const handleMove = (moveEvent: PointerEvent) => {
-      const deltaPx = moveEvent.clientY - startY;
-      setMoveDeltaWeeks(Math.round(deltaPx / WEEK_ROW_HEIGHT_PX));
+      const weeks = Math.round((moveEvent.clientY - startY) / WEEK_ROW_HEIGHT_PX);
+      const lanes = Math.round((moveEvent.clientX - startX) / laneWidthPx);
+      moveDeltaRef.current = { weeks, lanes };
+      setMoveDeltaWeeks(weeks);
+      setMoveDeltaLanes(lanes);
     };
     const handleUp = () => {
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
       setIsMoving(false);
-      setMoveDeltaWeeks((delta) => {
-        onMoveCommit(delta);
-        return 0;
-      });
+      setMoveDeltaWeeks(0);
+      setMoveDeltaLanes(0);
+      const { weeks, lanes } = moveDeltaRef.current;
+      onMoveCommit(weeks, lanes);
     };
 
     window.addEventListener("pointermove", handleMove);
@@ -155,8 +162,10 @@ export function RoadmapTaskBlock({
       style={{
         top: previewStartIndex * WEEK_ROW_HEIGHT_PX + 1,
         height: previewSpanWeeks * WEEK_ROW_HEIGHT_PX - 2,
-        left: `${(lane / laneCount) * 100}%`,
-        width: `${(1 / laneCount) * 100}%`,
+        left: 0,
+        width: "100%",
+        transform: isMoving ? `translateX(${moveDeltaLanes * laneWidthPx}px)` : undefined,
+        zIndex: isMoving ? 20 : undefined,
         backgroundColor: color ?? undefined,
       }}
     >
@@ -184,7 +193,7 @@ export function RoadmapTaskBlock({
           opacityだけで見せ隠しする。ColorPickerのPopoverはポータル表示され
           group（このブロック）の外にDOM上存在するため、displayで消してしまうと
           ポインタがポップオーバーへ移動した瞬間にトリガーごと消えて再表示が
-          繰り返され、位置計算が暴れて開けなくなる（ユーザー報告の表示ブレ）。
+          繰り返され、位置計算が暴れて開けなくなる（過去のユーザー報告の表示ブレ）。
           移動ハンドルは文字（テキストエリア）に被らないよう、削除ボタンの
           真下に縦に並べて右上隅にまとめる。 */}
       <div className="absolute top-0.5 right-0.5 z-10 flex flex-col items-end gap-0.5 opacity-0 group-hover:opacity-100">
@@ -212,7 +221,7 @@ export function RoadmapTaskBlock({
         <button
           type="button"
           className="cursor-grab touch-none rounded bg-background/70 p-1 hover:bg-background active:cursor-grabbing"
-          title="ドラッグして移動（複数選択中はまとめて移動）"
+          title="ドラッグして移動（上下＝別の週、左右＝別のサブ列。複数選択中はまとめて移動）"
           onPointerDown={startMove}
         >
           <MoveIcon className="size-3" />
@@ -230,36 +239,6 @@ export function RoadmapTaskBlock({
           }
         }}
       />
-      {(onMoveLeft || onMoveRight) && (
-        <div className="absolute bottom-0.5 left-0.5 z-10 flex w-[calc(100%-4px)] justify-between opacity-0 group-hover:opacity-100">
-          <button
-            type="button"
-            className="rounded bg-background/70 p-0.5 disabled:invisible hover:bg-background"
-            disabled={!onMoveLeft}
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveLeft?.();
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            title="左のブロックと入れ替え"
-          >
-            <ChevronLeftIcon className="size-3" />
-          </button>
-          <button
-            type="button"
-            className="rounded bg-background/70 p-0.5 disabled:invisible hover:bg-background"
-            disabled={!onMoveRight}
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveRight?.();
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            title="右のブロックと入れ替え"
-          >
-            <ChevronRightIcon className="size-3" />
-          </button>
-        </div>
-      )}
       <div
         className="absolute bottom-0 left-0 z-10 h-1.5 w-full cursor-ns-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
         onPointerDown={startResize("end")}

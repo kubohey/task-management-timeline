@@ -4,11 +4,10 @@ import { useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { PhaseRecord, ProjectRecord } from "@/features/hierarchy/types";
 import { cn } from "@/lib/utils";
-import { assignRoadmapLanes } from "./lanes";
 import { resolveRoadmapTaskColor } from "./resolve-task-color";
 import { RoadmapTaskBlock } from "./roadmap-task-block";
 import { RoadmapTaskPicker, type RoadmapTaskSelection } from "./roadmap-task-picker";
-import { useCreateRoadmapTask, useUpdateRoadmapTask } from "./use-roadmap-mutations";
+import { useCreateRoadmapTask } from "./use-roadmap-mutations";
 import { isCurrentWeek, weekKey, WEEK_ROW_HEIGHT_PX } from "./week-utils";
 import type { RoadmapColumnRecord, RoadmapTaskRecord } from "./types";
 
@@ -20,19 +19,21 @@ interface RoadmapColumnStripProps {
   phases: PhaseRecord[];
   projectsById: Map<string, ProjectRecord>;
   phasesById: Map<string, PhaseRecord>;
-  /** タスクブロックのドラッグ移動を確定する（複数選択中なら選択分すべてまとめて移動、RoadmapView側で判定）。 */
-  onMoveTask: (taskId: string, deltaWeeks: number) => void;
+  /** タスクブロックのドラッグ移動を確定する（週数・サブ列数の差分。複数選択中なら選択分すべてまとめて移動、RoadmapView側で判定）。 */
+  onMoveTask: (taskId: string, deltaWeeks: number, deltaLanes: number) => void;
 }
 
 interface WeekCellProps {
   column: RoadmapColumnRecord;
   week: Date;
+  /** このセルが属するサブ列（0始まり）。ここでタスクを作成するとこのサブ列に置かれる。 */
+  lane: number;
   projects: ProjectRecord[];
   phases: PhaseRecord[];
 }
 
-/** 週セルの背景。クリックするとその週にタスクを埋め込むピッカーが開く。 */
-function WeekCell({ column, week, projects, phases }: WeekCellProps) {
+/** 週セルの背景。クリックするとその週・そのサブ列にタスクを埋め込むピッカーが開く。 */
+function WeekCell({ column, week, lane, projects, phases }: WeekCellProps) {
   const [open, setOpen] = useState(false);
   const createTask = useCreateRoadmapTask();
 
@@ -46,6 +47,7 @@ function WeekCell({ column, week, projects, phases }: WeekCellProps) {
       label: selection.label,
       startWeek: iso,
       endWeek: iso,
+      lane,
     });
     setOpen(false);
   };
@@ -74,60 +76,39 @@ function WeekCell({ column, week, projects, phases }: WeekCellProps) {
   );
 }
 
-/**
- * ロードマップの1列（Project）分の縦ストリップ。背景の週セル（クリックで埋め込み）
- * の上に、タスクブロックを絶対配置で重ねる。週範囲が重なるタスクはレーン分けして
- * 横並びに表示する（docs/spec.md §2.6）。
- */
-export function RoadmapColumnStrip({
+interface SubLaneStripProps {
+  column: RoadmapColumnRecord;
+  lane: number;
+  laneWidth: number;
+  weeks: Date[];
+  /** このサブ列（lane）に属するタスクのみ。 */
+  tasks: RoadmapTaskRecord[];
+  projects: ProjectRecord[];
+  phases: PhaseRecord[];
+  projectsById: Map<string, ProjectRecord>;
+  phasesById: Map<string, PhaseRecord>;
+  weekIndexByKey: Map<string, number>;
+  onMoveTask: (taskId: string, deltaWeeks: number, deltaLanes: number) => void;
+}
+
+/** 列内の1サブ列分の縦ストリップ。背景の週セル＋そのサブ列に属するタスクブロックを重ねる。 */
+function SubLaneStrip({
   column,
+  lane,
+  laneWidth,
   weeks,
   tasks,
   projects,
   phases,
   projectsById,
   phasesById,
+  weekIndexByKey,
   onMoveTask,
-}: RoadmapColumnStripProps) {
-  const updateTask = useUpdateRoadmapTask();
-  const { laneById, laneCountById } = useMemo(() => assignRoadmapLanes(tasks), [tasks]);
-  const weekIndexByKey = useMemo(() => {
-    const map = new Map<string, number>();
-    weeks.forEach((week, index) => map.set(weekKey(week), index));
-    return map;
-  }, [weeks]);
-
-  // 並列表示（同じ週範囲で重なるブロック）の左右を入れ替える。隣のレーンにいる
-  // タスク（週範囲が重なっているもの＝同じクラスター）を探し、lane_orderを
-  // 交換して並び順を入れ替える。
-  // ユーザー要望：「同じプロジェクト内で並列に置いたタスクを左右に入れ替えられない？」
-  //
-  // 単純に2者のlane_order値を入れ替えるだけだと、値が同じ（多くは初期値の0同士）
-  // だった場合に交換しても値が変わらず、見た目の順序も変わらない（ユーザー報告：
-  // 「◀▶ボタンが機能しない」）。そのため移動方向に応じて、隣のタスクの値を基準に
-  // 「必ずその前/後ろに来る」値を明示的に設定する。
-  const swapLane = (task: RoadmapTaskRecord, direction: -1 | 1) => {
-    const targetLane = (laneById[task.id] ?? 0) + direction;
-    const neighbor = tasks.find(
-      (t) =>
-        t.id !== task.id &&
-        (laneById[t.id] ?? 0) === targetLane &&
-        !(t.end_week < task.start_week || t.start_week > task.end_week),
-    );
-    if (!neighbor) {
-      return;
-    }
-    updateTask.mutate({
-      id: task.id,
-      patch: { lane_order: neighbor.lane_order + direction },
-    });
-    updateTask.mutate({ id: neighbor.id, patch: { lane_order: task.lane_order } });
-  };
-
+}: SubLaneStripProps) {
   return (
     <div
       className="relative shrink-0 border-r"
-      style={{ width: column.width, height: weeks.length * WEEK_ROW_HEIGHT_PX }}
+      style={{ width: laneWidth, height: weeks.length * WEEK_ROW_HEIGHT_PX }}
     >
       <div className="flex flex-col">
         {weeks.map((week) => (
@@ -135,6 +116,7 @@ export function RoadmapColumnStrip({
             key={weekKey(week)}
             column={column}
             week={week}
+            lane={lane}
             projects={projects}
             phases={phases}
           />
@@ -146,22 +128,74 @@ export function RoadmapColumnStrip({
           // 表示範囲外の週に開始する（固定範囲の外）タスクは表示しない。
           return null;
         }
-        const currentLane = laneById[task.id] ?? 0;
-        const currentLaneCount = laneCountById[task.id] ?? 1;
         return (
           <RoadmapTaskBlock
             key={task.id}
             task={task}
             startIndex={startIndex}
-            lane={currentLane}
-            laneCount={currentLaneCount}
+            laneWidthPx={laneWidth}
             color={resolveRoadmapTaskColor(task, projectsById, phasesById)}
-            onMoveCommit={(deltaWeeks) => onMoveTask(task.id, deltaWeeks)}
-            onMoveLeft={currentLane > 0 ? () => swapLane(task, -1) : undefined}
-            onMoveRight={currentLane < currentLaneCount - 1 ? () => swapLane(task, 1) : undefined}
+            onMoveCommit={(deltaWeeks, deltaLanes) => onMoveTask(task.id, deltaWeeks, deltaLanes)}
           />
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * ロードマップの1列（Project）分。週範囲が重なるかどうかで自動計算していたレーンを
+ * やめ、ユーザーがヘッダーの「＋」で増やせる明示的なサブ列（roadmap_columns.lane_count
+ * 本）に置き換えた。各タスクは常にどれか1つのサブ列（roadmap_tasks.lane）に属し、
+ * 別の週で重ならないタスク同士でも横位置が自動でズレることはない。タスクは移動ハンドルの
+ * ドラッグで別の週・別のサブ列へ自由に動かせる（docs/spec.md §2.6）。
+ */
+export function RoadmapColumnStrip({
+  column,
+  weeks,
+  tasks,
+  projects,
+  phases,
+  projectsById,
+  phasesById,
+  onMoveTask,
+}: RoadmapColumnStripProps) {
+  const weekIndexByKey = useMemo(() => {
+    const map = new Map<string, number>();
+    weeks.forEach((week, index) => map.set(weekKey(week), index));
+    return map;
+  }, [weeks]);
+
+  const tasksByLane = useMemo(() => {
+    const map = new Map<number, RoadmapTaskRecord[]>();
+    for (const task of tasks) {
+      const bucket = map.get(task.lane) ?? [];
+      bucket.push(task);
+      map.set(task.lane, bucket);
+    }
+    return map;
+  }, [tasks]);
+
+  const laneWidth = column.width / column.lane_count;
+
+  return (
+    <div className="flex shrink-0">
+      {Array.from({ length: column.lane_count }, (_, lane) => (
+        <SubLaneStrip
+          key={lane}
+          column={column}
+          lane={lane}
+          laneWidth={laneWidth}
+          weeks={weeks}
+          tasks={tasksByLane.get(lane) ?? []}
+          projects={projects}
+          phases={phases}
+          projectsById={projectsById}
+          phasesById={phasesById}
+          weekIndexByKey={weekIndexByKey}
+          onMoveTask={onMoveTask}
+        />
+      ))}
     </div>
   );
 }

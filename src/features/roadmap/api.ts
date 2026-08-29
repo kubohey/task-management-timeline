@@ -42,7 +42,9 @@ export async function insertRoadmapColumn(input: {
   if (error) throw error;
 }
 
-export type RoadmapColumnPatch = Partial<Pick<RoadmapColumnRecord, "label" | "width" | "sort_order">>;
+export type RoadmapColumnPatch = Partial<
+  Pick<RoadmapColumnRecord, "label" | "width" | "sort_order" | "lane_count">
+>;
 
 export async function updateRoadmapColumn(id: string, patch: RoadmapColumnPatch) {
   const supabase = createClient();
@@ -68,6 +70,8 @@ export async function insertRoadmapTask(input: {
   label: string;
   startWeek: string;
   endWeek: string;
+  /** どのサブ列（0始まり）に置くか。クリックした週セルが属するサブ列。 */
+  lane: number;
   /** 手動ブロック用の背景色。Project/Phase埋め込みでは未指定（null）でよい。 */
   color?: string | null;
 }) {
@@ -80,13 +84,14 @@ export async function insertRoadmapTask(input: {
     label: input.label,
     start_week: input.startWeek,
     end_week: input.endWeek,
+    lane: input.lane,
     color: input.color ?? null,
   });
   if (error) throw error;
 }
 
 export type RoadmapTaskPatch = Partial<
-  Pick<RoadmapTaskRecord, "label" | "start_week" | "end_week" | "color" | "lane_order">
+  Pick<RoadmapTaskRecord, "label" | "start_week" | "end_week" | "color" | "lane">
 >;
 
 export async function updateRoadmapTask(id: string, patch: RoadmapTaskPatch) {
