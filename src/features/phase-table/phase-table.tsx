@@ -187,7 +187,7 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
           <col key={column.id} style={{ width: column.getSize() }} />
         ))}
       </colgroup>
-      <TableHeader>
+      <TableHeader className="sticky top-0 z-10 bg-background">
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             {headerGroup.headers.map((header) => (

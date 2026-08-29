@@ -86,7 +86,7 @@ export function PhaseTablePanel({
       ) : isError ? (
         <p className="text-sm text-destructive">データの取得に失敗しました。</p>
       ) : (
-        <div className="max-w-full overflow-x-auto rounded-md border bg-background">
+        <div className="max-h-80 max-w-full overflow-auto rounded-md border bg-background">
           <PhaseTable phaseId={phaseId} columns={columns} rows={rows} draggable />
         </div>
       )}
