@@ -35,9 +35,10 @@ type ResizeHandle = "start" | "end";
  * - 右上（削除ボタンの下）の移動ハンドル（MoveIcon）をドラッグすると、上下＝別の週、
  *   左右＝別のサブ列（roadmap_columns.lane_count本のうちどれか）へ移動できる
  *   （ユーザー要望：「任意の列のセルにタスクをドラッグできるようにしてほしい」）
- * - 左上のチェックボックスで複数選択でき、選択中のブロックのどれかをドラッグ
- *   すると選択中のブロックすべてを同じ週数・サブ列数だけまとめて移動する
- *   （ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」）
+ * - 右上（移動ハンドルの下）のチェックボックスで複数選択でき、選択中のブロックの
+ *   どれかをドラッグすると選択中のブロックすべてを同じ週数・サブ列数だけまとめて
+ *   移動する（ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」。
+ *   当初は左上に置いていたが、ドラッグボタンの下にまとめてほしいとのことで移動）
  * テキストは直接編集できる（編集内容はPhase表・カレンダー側には反映されない独立コピー）。
  * PlacementChip（メインのガントチャート、日単位・横方向）と同じ考え方の縦方向版。
  */
@@ -173,30 +174,20 @@ export function RoadmapTaskBlock({
         className="absolute top-0 left-0 z-10 h-1.5 w-full cursor-ns-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
         onPointerDown={startResize("start")}
       />
-      {/* 複数選択用チェックボックス。ドラッグで選択中のブロックをまとめて移動できる
-          （ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」）。
-          選択中は常時表示、未選択時はホバーで表示する。 */}
-      <div
-        className={cn(
-          "absolute top-0.5 left-0.5 z-10 rounded bg-background/70 p-0.5",
-          isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-        )}
-      >
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => toggleSelected(task.id)}
-          onPointerDown={(e) => e.stopPropagation()}
-          title="複数選択（選択中のブロックはまとめてドラッグ移動できる）"
-        />
-      </div>
       {/* hidden/group-hover:flex（displayの出し入れ）ではなく、常時displayさせて
           opacityだけで見せ隠しする。ColorPickerのPopoverはポータル表示され
           group（このブロック）の外にDOM上存在するため、displayで消してしまうと
           ポインタがポップオーバーへ移動した瞬間にトリガーごと消えて再表示が
           繰り返され、位置計算が暴れて開けなくなる（過去のユーザー報告の表示ブレ）。
-          移動ハンドルは文字（テキストエリア）に被らないよう、削除ボタンの
-          真下に縦に並べて右上隅にまとめる。 */}
-      <div className="absolute top-0.5 right-0.5 z-10 flex flex-col items-end gap-0.5 opacity-0 group-hover:opacity-100">
+          削除・移動・複数選択チェックボックスは文字（テキストエリア）に被らないよう
+          右上隅に縦に並べてまとめる（チェックボックスは移動ハンドルの下）。
+          選択中はこの一群を常時表示にする（チェック状態が常に見えるように）。 */}
+      <div
+        className={cn(
+          "absolute top-0.5 right-0.5 z-10 flex flex-col items-end gap-0.5",
+          isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+        )}
+      >
         <div className="flex items-center gap-0.5 rounded bg-background/70">
           {task.source_type === "manual" && (
             <ColorPicker
@@ -226,6 +217,16 @@ export function RoadmapTaskBlock({
         >
           <MoveIcon className="size-3" />
         </button>
+        {/* 複数選択用チェックボックス。ドラッグで選択中のブロックをまとめて移動できる
+            （ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」）。 */}
+        <div className="rounded bg-background/70 p-0.5">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => toggleSelected(task.id)}
+            onPointerDown={(e) => e.stopPropagation()}
+            title="複数選択（選択中のブロックはまとめてドラッグ移動できる）"
+          />
+        </div>
       </div>
       <textarea
         key={task.label}
