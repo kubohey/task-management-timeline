@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { format, isSameDay, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,13 @@ interface DayCellProps {
  */
 function DayCell({ id, date, className, phaseId, columns, sortOrder, dayWidth }: DayCellProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  // ドラッグ中はネイティブの:hoverハイライト（灰色）を止め、dnd-kitのisOver
+  // ハイライト（プライマリ色）だけを表示する。両方が同時に効くと、実際の
+  // カーソル位置に追従する:hoverと、収集判定が確定してから1テンポ遅れて
+  // 切り替わるisOverとで対象セルが一瞬ズレ、隣接する2セルが同時に光って
+  // ちらつく（ユーザー報告：「灰色の点灯と、黒の点灯が二重でブレる」）。
+  const { active } = useDndContext();
+  const isAnyDragActive = active != null;
   const [open, setOpen] = useState(false);
   const [taskName, setTaskName] = useState("");
   const createWithNewRow = useCreatePlacementWithNewRow();
@@ -81,7 +88,8 @@ function DayCell({ id, date, className, phaseId, columns, sortOrder, dayWidth }:
         <div
           ref={setNodeRef}
           className={cn(
-            "shrink-0 cursor-pointer border-r hover:bg-accent/50",
+            "shrink-0 cursor-pointer border-r",
+            !isAnyDragActive && "hover:bg-accent/50",
             className,
             isOver && "bg-primary/20",
           )}

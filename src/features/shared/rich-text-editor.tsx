@@ -15,6 +15,12 @@ interface RichTextEditorProps {
   onChange: (doc: JSONContent) => void;
   /** trueのとき太字・箇条書き・チェックリスト・ハイライトのツールバーを表示する。 */
   toolbar?: boolean;
+  /**
+   * trueのとき生成直後にエディタへフォーカスする（末尾にカーソル）。
+   * プレビュー表示からクリックで初めてマウントする使い方（NoteRichCell参照）で、
+   * マウント後すぐ入力を続けられるようにするためのオプション。
+   */
+  autoFocus?: boolean;
   className?: string;
 }
 
@@ -52,7 +58,13 @@ const AUTOSAVE_DELAY_MS = 600;
  * メモ欄（ポップオーバー）はクリック外や別タスククリックで即座にアンマウントされるため、
  * blurのみに頼ると入力直後の編集が保存されないことがあるための対策。
  */
-export function RichTextEditor({ value, onChange, toolbar = false, className }: RichTextEditorProps) {
+export function RichTextEditor({
+  value,
+  onChange,
+  toolbar = false,
+  autoFocus = false,
+  className,
+}: RichTextEditorProps) {
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -80,6 +92,7 @@ export function RichTextEditor({ value, onChange, toolbar = false, className }: 
   const editor = useEditor({
     extensions: [StarterKit, Highlight, TaskList, TaskItem.configure({ nested: true })],
     content: value,
+    autofocus: autoFocus ? "end" : false,
     immediatelyRender: false,
     editorProps: {
       attributes: {

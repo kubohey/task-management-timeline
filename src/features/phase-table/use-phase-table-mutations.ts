@@ -2,7 +2,10 @@
 
 import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import * as api from "./api";
-import type { TableRowRecord } from "./types";
+import type { CellValue, TableRowRecord } from "./types";
+
+/** cellsQueryのキャッシュに入っている1件分の形（api.fetchTableCellsの戻り値の要素）。 */
+type TableCellCacheEntry = { row_id: string; column_id: string; value: CellValue };
 
 /** 行・セルの変更後にキャッシュを無効化する共通処理。 */
 function useInvalidateTable() {
@@ -72,12 +75,48 @@ export function useReorderRows() {
   });
 }
 
+/**
+ * セル1件の更新（チェックボックス・テキスト・備考・サブタスク共通）。
+ * 楽観的更新でtableCellsキャッシュを即座に書き換え、サーバー応答を待たずに
+ * 画面へ反映する（ユーザー報告：「サブタスク作成時に、Enterを押してから
+ * サブタスクがチェックボックス形式で作成されるまで時間がかかる」）。
+ * 以前は成功後にtableRows・tableCellsの両方をinvalidateしていたが、セルの
+ * 値が変わるだけで行の集合は変化しないため、tableRowsまでinvalidateすると
+ * 不要な再取得が二重に走り体感速度が落ちていた。tableCellsのみを対象にする。
+ * cellsQueryの実際のキャッシュキーは`["tableCells", phaseId, rowIds]`だが、
+ * rowIdsをここで知る必要をなくすため`exact: false`で`["tableCells", phaseId]`
+ * 接頭辞一致のクエリすべてを対象にする。
+ */
 export function useUpdateCell() {
-  const invalidate = useInvalidateTable();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (vars: Parameters<typeof api.upsertTableCell>[0] & { phaseId: string }) =>
       api.upsertTableCell(vars),
-    onSuccess: (_data, vars) => invalidate(vars.phaseId),
+    onMutate: async (vars) => {
+      const filter = { queryKey: ["tableCells", vars.phaseId], exact: false } as const;
+      await queryClient.cancelQueries(filter);
+      const previous = queryClient.getQueriesData<TableCellCacheEntry[]>(filter);
+      queryClient.setQueriesData<TableCellCacheEntry[]>(filter, (old) => {
+        if (!old) return old;
+        const index = old.findIndex(
+          (cell) => cell.row_id === vars.rowId && cell.column_id === vars.columnId,
+        );
+        if (index === -1) {
+          return [...old, { row_id: vars.rowId, column_id: vars.columnId, value: vars.value }];
+        }
+        const next = [...old];
+        next[index] = { ...next[index], value: vars.value };
+        return next;
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
+    onSettled: (_data, _err, vars) =>
+      void queryClient.invalidateQueries({ queryKey: ["tableCells", vars.phaseId] }),
   });
 }
 
