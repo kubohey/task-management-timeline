@@ -13,6 +13,8 @@ import type { RoadmapColumnRecord, RoadmapTaskRecord } from "./types";
 
 interface RoadmapColumnStripProps {
   column: RoadmapColumnRecord;
+  /** 表示に使う実効幅（ドラッグ中はRoadmapView側のライブ値、そうでなければcolumn.width）。 */
+  width: number;
   weeks: Date[];
   tasks: RoadmapTaskRecord[];
   projects: ProjectRecord[];
@@ -152,6 +154,7 @@ function SubLaneStrip({
  */
 export function RoadmapColumnStrip({
   column,
+  width,
   weeks,
   tasks,
   projects,
@@ -176,7 +179,7 @@ export function RoadmapColumnStrip({
     return map;
   }, [tasks]);
 
-  const laneWidth = column.width / column.lane_count;
+  const laneWidth = width / column.lane_count;
 
   return (
     <div className="flex shrink-0">

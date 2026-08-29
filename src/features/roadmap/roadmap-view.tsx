@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addWeeks, format, parseISO } from "date-fns";
 import { ZoomControl } from "@/features/shared/zoom-control";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,27 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
   }, [tasks]);
   const tasksById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const columnsById = useMemo(() => new Map(columns.map((c) => [c.id, c])), [columns]);
+
+  // 列幅ドラッグ中のライブ値。RoadmapColumnHeader（列見出し）とRoadmapColumnStrip
+  // （その下の週セル・タスク列）は別コンポーネントで、どちらも本来column.widthを
+  // 見て幅を決めるが、それだとドラッグ中は見出しだけが即座に動き、下のセル群は
+  // DB更新→再取得が終わるまで古い幅のまま追随せず、コンマ何秒か遅れて幅が変わって
+  // いるように見えていた（ユーザー報告：「Excelみたいに、ラベルの幅を変えるのと
+  // 同時に下のセルも移動するようにして」）。見出し・セル双方がこのstateを共通の
+  // ライブ幅として参照することで、ドラッグ中も常に同じ幅で同期させる。
+  const [liveColumnWidths, setLiveColumnWidths] = useState<Record<string, number>>({});
+  const getColumnWidth = (columnId: string, fallback: number) => liveColumnWidths[columnId] ?? fallback;
+  const setLiveColumnWidth = (columnId: string, width: number | null) => {
+    setLiveColumnWidths((prev) => {
+      if (width === null) {
+        if (!(columnId in prev)) return prev;
+        const next = { ...prev };
+        delete next[columnId];
+        return next;
+      }
+      return { ...prev, [columnId]: width };
+    });
+  };
 
   // ドラッグ移動の確定処理。ドラッグされたタスクが複数選択中の一員なら、選択中の
   // タスクすべてを同じ週数・サブ列数だけまとめて移動する（列をまたいで選択されていてもよい）。
@@ -128,7 +149,9 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
   }
 
   const totalWidth =
-    WEEK_LABEL_WIDTH_PX + columns.reduce((sum, c) => sum + c.width, 0) + ADD_COLUMN_SLOT_WIDTH_PX;
+    WEEK_LABEL_WIDTH_PX +
+    columns.reduce((sum, c) => sum + getColumnWidth(c.id, c.width), 0) +
+    ADD_COLUMN_SLOT_WIDTH_PX;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -148,7 +171,12 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
               週単位
             </div>
             {columns.map((column) => (
-              <RoadmapColumnHeader key={column.id} column={column} />
+              <RoadmapColumnHeader
+                key={column.id}
+                column={column}
+                width={getColumnWidth(column.id, column.width)}
+                onLiveWidthChange={(width) => setLiveColumnWidth(column.id, width)}
+              />
             ))}
             <div
               className="flex shrink-0 items-center justify-center"
@@ -185,6 +213,7 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
                 <RoadmapColumnStrip
                   key={column.id}
                   column={column}
+                  width={getColumnWidth(column.id, column.width)}
                   weeks={weeks}
                   tasks={tasksByColumn.get(column.id) ?? []}
                   projects={projects}
