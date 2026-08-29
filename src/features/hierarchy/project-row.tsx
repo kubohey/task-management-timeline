@@ -15,7 +15,12 @@ import type { ProjectNode } from "./build-tree";
 import { INDENT_STEP_PX } from "./constants";
 import { PhaseRow } from "./phase-row";
 import { usePhaseStatuses } from "./phase-statuses-context";
-import { useCreatePhase, useDeleteProject, useUpdateProject } from "./use-hierarchy-mutations";
+import {
+  useCreatePhase,
+  useDeleteProject,
+  useUpdatePhase,
+  useUpdateProject,
+} from "./use-hierarchy-mutations";
 
 interface ProjectRowProps {
   project: ProjectNode;
@@ -29,6 +34,7 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const createPhase = useCreatePhase();
+  const updatePhase = useUpdatePhase();
   const phaseSortMode = useUiStore((s) => s.phaseSortMode);
   const hiddenPhaseStatuses = useUiStore((s) => s.hiddenPhaseStatuses);
   const statuses = usePhaseStatuses();
@@ -52,6 +58,20 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
 
   const phaseLabelWidth = useUniformLabelWidth(phases.map((p) => p.name));
   const { totalWidth } = useTimelineDays();
+
+  // 隣同士のsort_orderを入れ替えることで並び替える（表示中の並び順＝phases基準）。
+  // status順表示中はPhase自体のsort_orderを動かしても見た目の並びが変わらず
+  // 混乱を招くため、追加順表示（phaseSortMode==="manual"）のときだけ有効にする
+  // （PhaseRow側にはundefinedを渡し、ボタンごと出さない）。
+  const movePhase = (index: number, direction: -1 | 1) => {
+    const current = phases[index];
+    const target = phases[index + direction];
+    if (!current || !target) {
+      return;
+    }
+    updatePhase.mutate({ id: current.id, patch: { sort_order: target.sort_order } });
+    updatePhase.mutate({ id: target.id, patch: { sort_order: current.sort_order } });
+  };
 
   return (
     <div>
@@ -136,13 +156,22 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
           className="flex flex-col gap-1 py-1"
           style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}
         >
-          {phases.map((phase) => (
+          {phases.map((phase, index) => (
             <PhaseRow
               key={phase.id}
               phase={phase}
               depth={depth + 1}
               labelWidth={phaseLabelWidth}
               projectColor={project.color}
+              orderNumber={index + 1}
+              onMoveUp={
+                phaseSortMode === "manual" && index > 0 ? () => movePhase(index, -1) : undefined
+              }
+              onMoveDown={
+                phaseSortMode === "manual" && index < phases.length - 1
+                  ? () => movePhase(index, 1)
+                  : undefined
+              }
             />
           ))}
         </div>

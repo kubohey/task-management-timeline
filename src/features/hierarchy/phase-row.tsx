@@ -12,7 +12,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Maximize2Icon, TableIcon, Trash2Icon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, Maximize2Icon, TableIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { PhaseTableDialog } from "@/features/phase-table/phase-table-dialog";
@@ -36,15 +36,33 @@ interface PhaseRowProps {
   labelWidth: number;
   /** タイムライン上のタスクチップの色をこのProjectの色に揃える。 */
   projectColor: string | null;
+  /** 表示順の番号（1始まり）。現在表示されている並び順での位置をそのまま表す。 */
+  orderNumber: number;
+  /**
+   * 上/下のPhaseと入れ替えるハンドラ。追加順表示（status順ではない）かつ
+   * 入れ替え先が存在するときだけ渡される（境界・status順表示時はundefined＝ボタン無効）。
+   */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 /**
- * Phase行：名前編集、status付与、削除。
+ * Phase行：名前編集、status付与、削除。表示順の番号を振り、追加順表示のときは
+ * 上下のPhaseと入れ替えられる（ユーザー要望：「追加した順番に表示されるので、
+ * 上下に入れ替える機能があると嬉しい」）。
  * タスク表はカレンダーと並べて見えるインライン展開、または単体ダイアログの2通りで開ける。
  * インライン表示の表からタイムラインの日付セルへ行をドラッグ登録できる（docs/spec.md §2.2）。
  * 表内の行同士もドラッグで並び替えられる（PhaseTable側のSortableTableRow参照）。
  */
-export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowProps) {
+export function PhaseRow({
+  phase,
+  depth,
+  labelWidth,
+  projectColor,
+  orderNumber,
+  onMoveUp,
+  onMoveDown,
+}: PhaseRowProps) {
   const [editing, setEditing] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
   const [tableDialogOpen, setTableDialogOpen] = useState(false);
@@ -134,6 +152,35 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
             className="sticky left-0 z-10 flex shrink-0 items-center gap-2 border border-transparent bg-background px-2 py-1.5 hover:border-border"
             style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
           >
+            {(onMoveUp || onMoveDown) && (
+              <div className="flex shrink-0 flex-col">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-4"
+                  disabled={!onMoveUp}
+                  onClick={onMoveUp}
+                  title="上のPhaseと入れ替え"
+                >
+                  <ArrowUpIcon className="size-3" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-4"
+                  disabled={!onMoveDown}
+                  onClick={onMoveDown}
+                  title="下のPhaseと入れ替え"
+                >
+                  <ArrowDownIcon className="size-3" />
+                </Button>
+              </div>
+            )}
+            <span className="w-5 shrink-0 text-right text-xs text-muted-foreground">
+              {orderNumber}.
+            </span>
             <InlineEditableText
               value={phase.name}
               editing={editing}
