@@ -72,7 +72,7 @@ export function RoadmapColumnHeader({ column, width, onLiveWidthChange }: Roadma
         editing={editing}
         onEditingChange={setEditing}
         onSubmit={(label) => updateColumn.mutate({ id: column.id, patch: { label } })}
-        className="flex-1 text-sm font-semibold"
+        className="flex-1 text-center text-sm font-semibold"
       />
       <Button
         type="button"

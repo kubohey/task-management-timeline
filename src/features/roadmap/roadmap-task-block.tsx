@@ -231,7 +231,7 @@ export function RoadmapTaskBlock({
       <textarea
         key={task.label}
         defaultValue={task.label}
-        className="h-full w-full resize-none overflow-y-auto border-none bg-transparent p-1.5 pr-5 text-center text-xs outline-none"
+        className="h-full w-full resize-none overflow-y-auto border-none bg-transparent p-1.5 pr-5 text-xs outline-none"
         onPointerDown={(e) => e.stopPropagation()}
         onBlur={(e) => {
           const next = e.currentTarget.value;
