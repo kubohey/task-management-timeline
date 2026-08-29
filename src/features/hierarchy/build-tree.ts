@@ -57,3 +57,28 @@ export function buildHierarchyTree(
 
   return (groupsByParent.get(null) ?? []).slice().sort(bySortOrder).map(toGroupNode);
 }
+
+/**
+ * 木構造（buildHierarchyTreeの結果）から、Projectだけを
+ * Group（Subgroup再帰、サブグループ→自分のProjectの順）の深さ優先順で取り出す。
+ * サイドバーの表示順と同じ並び。ロードマップの検索系ピッカー（AddRoadmapColumnButton・
+ * RoadmapTaskPicker）で、Project/Phaseの候補を「Group→Project→Phase」の階層順に
+ * 並べるために使う（ユーザー報告：「検索候補がランダム表示になっている」。
+ * sort_orderは親ごとにローカルな値のため、projectsテーブル単体を素直にorderしても、
+ * 異なるGroupのProjectが混ざり合ってしまい階層順にはならない）。
+ * 返すのは`ProjectNode`（`.phases`もsort_order順で持つ）なので、呼び出し側で
+ * Phaseの並びも別途組み立て直す必要はない。
+ */
+export function flattenProjectsInHierarchyOrder(tree: GroupNode[]): ProjectNode[] {
+  const out: ProjectNode[] = [];
+  const visit = (group: GroupNode) => {
+    for (const subgroup of group.subgroups) {
+      visit(subgroup);
+    }
+    out.push(...group.projects);
+  };
+  for (const group of tree) {
+    visit(group);
+  }
+  return out;
+}

@@ -56,6 +56,44 @@ export function useUpdateRoadmapColumn() {
   });
 }
 
+/**
+ * Project列のドラッグ並び替え。楽観的更新でroadmapColumnsキャッシュのsort_orderを
+ * 即座に並び替え、ドロップ直後にサーバー応答を待たず画面上の順序を確定させる
+ * （hierarchy/use-hierarchy-mutations.tsのuseReorderPhasesと同じ方式）。
+ * ユーザー要望：「ロードマップのページで、各プロジェクトの列をドラッグして、
+ * 並び替えられるようにしてほしい」
+ */
+export function useReorderRoadmapColumns() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orderedColumnIds: string[]) => api.reorderRoadmapColumns(orderedColumnIds),
+    onMutate: async (orderedColumnIds) => {
+      const queryKey: QueryKey = ["roadmapColumns"];
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<RoadmapColumnRecord[]>(queryKey);
+      if (previous) {
+        const orderById = new Map(orderedColumnIds.map((id, index) => [id, index]));
+        const next = previous
+          .map((column) => {
+            const nextOrder = orderById.get(column.id);
+            return nextOrder === undefined ? column : { ...column, sort_order: nextOrder };
+          })
+          .sort((a, b) => a.sort_order - b.sort_order);
+        queryClient.setQueryData(queryKey, next);
+      }
+      return { previous, queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["roadmapColumns"] });
+    },
+  });
+}
+
 export function useDeleteRoadmapColumn() {
   const invalidate = useInvalidateColumns();
   const invalidateTasks = useInvalidateTasks();

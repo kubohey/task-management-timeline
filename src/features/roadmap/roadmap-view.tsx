@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { addWeeks, format, parseISO } from "date-fns";
 import { ZoomControl } from "@/features/shared/zoom-control";
 import { cn } from "@/lib/utils";
@@ -9,7 +18,7 @@ import { AddRoadmapColumnButton } from "./add-roadmap-column-button";
 import { RoadmapColumnHeader } from "./roadmap-column-header";
 import { RoadmapColumnStrip } from "./roadmap-column-strip";
 import { useRoadmapData } from "./use-roadmap-data";
-import { useUpdateRoadmapTask } from "./use-roadmap-mutations";
+import { useReorderRoadmapColumns, useUpdateRoadmapTask } from "./use-roadmap-mutations";
 import {
   formatWeekLabel,
   getRoadmapWeeks,
@@ -41,6 +50,8 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
   const setRoadmapZoomPercent = useUiStore((s) => s.setRoadmapZoomPercent);
   const selectedRoadmapTaskIds = useUiStore((s) => s.selectedRoadmapTaskIds);
   const updateTask = useUpdateRoadmapTask();
+  const reorderColumns = useReorderRoadmapColumns();
+  const columnDragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   // scrollTopは実際の画面ピクセル（zoom適用後）で動くため、初回スクロール計算にも
   // zoom倍率を掛ける必要がある。マウント時点の値だけ使えばよいためrefで参照する。
   const zoomRef = useRef(roadmapZoomPercent);
@@ -117,6 +128,23 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
     }
   };
 
+  // Project列（見出しのグリップ）をドラッグして並び替える
+  // （ユーザー要望：「各プロジェクトの列をドラッグして、並び替えられるようにしてほしい」）。
+  // hierarchy/project-row.tsxのPhase並び替え（handlePhaseDragEnd）と同じ方式。
+  const handleColumnDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      return;
+    }
+    const oldIndex = columns.findIndex((c) => c.id === active.id);
+    const newIndex = columns.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+    const reordered = arrayMove(columns, oldIndex, newIndex);
+    reorderColumns.mutate(reordered.map((c) => c.id));
+  };
+
   // 初回表示時、今週が画面のちょうど中央あたりに来るようスクロール位置を調整する
   // （メインのガントチャートの「今日」自動スクロールと同じ考え方、縦方向版）。
   // isLoading中はまだ読み込み中メッセージしか描画されておらずscrollRef/headerRefが
@@ -170,15 +198,26 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
             >
               週単位
             </div>
-            {columns.map((column) => (
-              <RoadmapColumnHeader
-                key={column.id}
-                column={column}
-                tasks={tasksByColumn.get(column.id) ?? []}
-                width={getColumnWidth(column.id, column.width)}
-                onLiveWidthChange={(width) => setLiveColumnWidth(column.id, width)}
-              />
-            ))}
+            <DndContext
+              sensors={columnDragSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleColumnDragEnd}
+            >
+              <SortableContext
+                items={columns.map((c) => c.id)}
+                strategy={horizontalListSortingStrategy}
+              >
+                {columns.map((column) => (
+                  <RoadmapColumnHeader
+                    key={column.id}
+                    column={column}
+                    tasks={tasksByColumn.get(column.id) ?? []}
+                    width={getColumnWidth(column.id, column.width)}
+                    onLiveWidthChange={(width) => setLiveColumnWidth(column.id, width)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
             <div
               className="flex shrink-0 items-center justify-center"
               style={{ width: ADD_COLUMN_SLOT_WIDTH_PX }}

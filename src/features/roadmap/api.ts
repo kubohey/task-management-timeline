@@ -58,6 +58,22 @@ export async function deleteRoadmapColumn(id: string) {
   if (error) throw error;
 }
 
+/**
+ * Project列をドラッグで並び替えた後、新しい並び順どおりにsort_orderを振り直す。
+ * Phaseの並び替え（hierarchy/api.tsのreorderPhases）と同じ方式：列数分の
+ * 個別updateを並列実行する。
+ */
+export async function reorderRoadmapColumns(orderedColumnIds: string[]) {
+  const supabase = createClient();
+  const results = await Promise.all(
+    orderedColumnIds.map((id, index) =>
+      supabase.from("roadmap_columns").update({ sort_order: index }).eq("id", id),
+    ),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+}
+
 // ============================================================
 // タスクブロック（roadmap_tasks）
 // ============================================================

@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Columns3Icon, Trash2Icon, XIcon } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Columns3Icon, GripVerticalIcon, Trash2Icon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,10 @@ interface RoadmapColumnHeaderProps {
  * サブ列が2つ以上あるときは、見出し下にサブ列ごとの帯を出し、削除したい
  * サブ列を個別に指定して削除できる（ユーザー要望：「削除したい列を指定できる
  * ようにしたい」。それまでは末尾のサブ列しか削除できなかった）。
+ * 見出し左端のつまみをドラッグして列（Project）全体を左右に並び替えられる
+ * （ユーザー要望：「各プロジェクトの列をドラッグして、並び替えられるように
+ * してほしい」）。実際のドラッグ処理・sort_order確定はRoadmapView側で行う
+ * （このコンポーネントは`@dnd-kit/sortable`のuseSortableに乗るだけ）。
  */
 export function RoadmapColumnHeader({ column, tasks, width, onLiveWidthChange }: RoadmapColumnHeaderProps) {
   const [editing, setEditing] = useState(false);
@@ -43,6 +49,9 @@ export function RoadmapColumnHeader({ column, tasks, width, onLiveWidthChange }:
   const updateTask = useUpdateRoadmapTask();
   const deleteTask = useDeleteRoadmapTask();
   const deleteColumn = useDeleteRoadmapColumn();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: column.id,
+  });
 
   // 指定したサブ列（laneIndex）を削除する。そこにタスクが残っている場合は確認の
   // うえタスクごと削除し、それより後ろのサブ列は詰めて（lane番号を1つずつ前へ）、
@@ -103,8 +112,27 @@ export function RoadmapColumnHeader({ column, tasks, width, onLiveWidthChange }:
   };
 
   return (
-    <div className="relative flex shrink-0 flex-col border-r bg-background" style={{ width }}>
+    <div
+      ref={setNodeRef}
+      className="relative flex shrink-0 flex-col border-r bg-background"
+      style={{
+        width,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : undefined,
+        opacity: isDragging ? 0.6 : undefined,
+      }}
+    >
       <div className="flex items-center gap-1 px-2 py-1.5">
+        <button
+          type="button"
+          className="shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          title="ドラッグして列を並び替え"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVerticalIcon className="size-3.5" />
+        </button>
         <InlineEditableText
           value={column.label}
           editing={editing}
