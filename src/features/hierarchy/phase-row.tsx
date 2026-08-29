@@ -6,8 +6,10 @@ import {
   DragOverlay,
   PointerSensor,
   closestCenter,
+  pointerWithin,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DraggableAttributes,
   type DraggableSyntheticListeners,
@@ -111,6 +113,24 @@ export function PhaseRow({
   // ①表の行のグリップ（`row:${rowId}`）→カレンダー日付セル（`day:...`）で予定登録
   // ②表の行の並び替えグリップ（`${TABLE_ROW_SORTABLE_PREFIX}${rowId}`）同士で行の順序入れ替え
   // idの接頭辞で判別する。DragOverlayは①のときだけ表示する。
+  //
+  // ①の衝突判定にはpointerWithin（実際のポインタ座標が矩形内に入っているか）を使う。
+  // closestCenterは「ドラッグ中の要素（表内の小さなグリップアイコン）の元のrectを
+  // ポインタの移動量ぶん平行移動した矩形」の中心と各日付セルの中心を比較するため、
+  // つまみを掴んだ位置とDragOverlayで見えているチップの見た目の位置がズレていると、
+  // ユーザーが実際にカーソルを合わせているセルとは異なるセル（ユーザー報告：
+  // 「カーソルをあわせているセルの2つ前の日付にタスクが埋め込まれてしまう」）に
+  // ドロップ判定されてしまう。pointerWithinなら常に実際のカーソル座標で判定できる。
+  // ②の行並び替え（SortableContext）は従来どおりclosestCenterを使う
+  // （dnd-kitのsortable標準パターンで、縦方向の入れ替え判定に適している）。
+  const collisionDetectionStrategy: CollisionDetection = (args) => {
+    const activeId = args.active.id;
+    if (typeof activeId === "string" && activeId.startsWith("row:")) {
+      return pointerWithin(args);
+    }
+    return closestCenter(args);
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     const id = event.active.id;
     if (typeof id === "string" && id.startsWith("row:")) {
@@ -158,7 +178,7 @@ export function PhaseRow({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetectionStrategy}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={() => {

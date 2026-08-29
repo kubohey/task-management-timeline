@@ -9,11 +9,12 @@ import {
 } from "@tanstack/react-table/legacy";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVerticalIcon, Trash2Icon } from "lucide-react";
+import { ChevronsLeftIcon, ChevronsRightIcon, GripVerticalIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DraggableRowHandle } from "@/features/task-placement/draggable-row-handle";
 import { cn } from "@/lib/utils";
+import { useUiStore } from "@/store/ui-store";
 import { AddColumnPopover } from "./add-column-popover";
 import { CheckboxCell } from "./cells/checkbox-cell";
 import { NoteRichCell } from "./cells/note-rich-cell";
@@ -49,6 +50,8 @@ const ACTIONS_COLUMN_ID = "__actions";
 const ADD_COLUMN_ID = "__add_column";
 /** デフォルト4列のkey。この列は削除ボタンを出さない。 */
 const DEFAULT_COLUMN_KEYS = new Set(["checkbox", "task_name", "note", "subtasks"]);
+/** 折りたたんだ列の幅（px）。トグルボタンだけが見える程度の最小幅。 */
+const COLLAPSED_COLUMN_WIDTH = 32;
 
 /**
  * 行並び替え用のdnd-kit sortable id接頭辞。カレンダー登録用ドラッグ
@@ -68,6 +71,8 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
   const createColumn = useCreateColumn();
   const deleteColumn = useDeleteColumn();
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
+  const collapsedColumnIds = useUiStore((s) => s.collapsedPhaseTableColumnIds);
+  const toggleCollapsedColumn = useUiStore((s) => s.toggleCollapsedPhaseTableColumn);
 
   const columnDefs: LegacyColumnDef<RowWithCells>[] = [
     {
@@ -78,31 +83,56 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
       // 実際の描画（ドラッグつまみ）はSortableTableRowで行う。ここは列幅確保のためのプレースホルダー。
       cell: () => null,
     },
-    ...columns.map(
-      (column): LegacyColumnDef<RowWithCells> => ({
+    ...columns.map((column): LegacyColumnDef<RowWithCells> => {
+      const isCollapsed = collapsedColumnIds.includes(column.id);
+      return {
         id: column.id,
         header: () => (
-          <div className="flex items-center justify-between gap-1">
-            <span>{column.label}</span>
-            {!DEFAULT_COLUMN_KEYS.has(column.key) && (
+          <div className={cn("flex items-center gap-1", isCollapsed ? "justify-center" : "justify-between")}>
+            {!isCollapsed && <span className="truncate">{column.label}</span>}
+            <div className="flex items-center gap-0.5">
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                title="列を削除"
+                title={isCollapsed ? `「${column.label}」列を展開` : `「${column.label}」列を折りたたむ`}
                 onClick={() => {
-                  if (confirm(`列「${column.label}」を削除しますか？（この列のセルも削除されます）`)) {
-                    deleteColumn.mutate({ id: column.id, phaseId });
-                  }
+                  // 列幅ドラッグ由来のTanStack内部sizingキャッシュが残っていると、
+                  // 折りたたみ後もcolumnDef.sizeの変更（折りたたみ幅）が反映されないことが
+                  // あるため、トグルのたびに一度リセットして常にcolumnDef.size（＝この下で
+                  // isCollapsedに応じて計算した値）を使わせる。
+                  table.resetColumnSizing();
+                  toggleCollapsedColumn(column.id);
                 }}
               >
-                <Trash2Icon />
+                {isCollapsed ? <ChevronsRightIcon /> : <ChevronsLeftIcon />}
               </Button>
-            )}
+              {!isCollapsed && !DEFAULT_COLUMN_KEYS.has(column.key) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  title="列を削除"
+                  onClick={() => {
+                    if (confirm(`列「${column.label}」を削除しますか？（この列のセルも削除されます）`)) {
+                      deleteColumn.mutate({ id: column.id, phaseId });
+                    }
+                  }}
+                >
+                  <Trash2Icon />
+                </Button>
+              )}
+            </div>
           </div>
         ),
-        size: column.width,
+        size: isCollapsed ? COLLAPSED_COLUMN_WIDTH : column.width,
+        enableResizing: !isCollapsed,
         cell: ({ row }) => {
+          // 折りたたみ中はセルの中身を描画しない（列幅が最小のため、リッチテキスト等の
+          // エディタをそのまま描画すると崩れる／不要な処理が走るのを避ける）。
+          if (isCollapsed) {
+            return null;
+          }
           const value = row.original.cells[column.id];
           const onChange = (next: CellValue) =>
             updateCell.mutate({
@@ -132,8 +162,8 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
               );
           }
         },
-      }),
-    ),
+      };
+    }),
     {
       id: ACTIONS_COLUMN_ID,
       header: "",

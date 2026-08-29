@@ -72,6 +72,12 @@ interface UiState {
    * （ユーザー要望：「複数選択して同時にセルのドラッグができると嬉しい」）。
    */
   selectedRoadmapTaskIds: string[];
+  /**
+   * 折りたたみ表示中のPhase表の列id一覧。ユーザー要望「Phase内の各列をトグルで
+   * 折りたたみたい」により、列ごとに幅を最小化して非表示にできるようにする。
+   * 列idはtable_columns.idそのもの（Phaseをまたいで一意）なので、キーを分ける必要はない。
+   */
+  collapsedPhaseTableColumnIds: string[];
   setTimelineScale: (scale: TimelineScale) => void;
   setFullscreen: (value: boolean) => void;
   setPhaseSortMode: (mode: PhaseSortMode) => void;
@@ -86,6 +92,7 @@ interface UiState {
   setTaskTablePanelSize: (size: { width: number; height: number }) => void;
   toggleSelectedRoadmapTask: (id: string) => void;
   clearSelectedRoadmapTasks: () => void;
+  toggleCollapsedPhaseTableColumn: (columnId: string) => void;
 }
 
 /**
@@ -117,6 +124,7 @@ export const useUiStore = create<UiState>()(
       taskTablePanelWidth: TASK_TABLE_PANEL_DEFAULT_WIDTH_PX,
       taskTablePanelHeight: TASK_TABLE_PANEL_DEFAULT_HEIGHT_PX,
       selectedRoadmapTaskIds: [],
+      collapsedPhaseTableColumnIds: [],
       setTimelineScale: (timelineScale) => set({ timelineScale }),
       setFullscreen: (isFullscreen) => set({ isFullscreen }),
       setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
@@ -149,6 +157,12 @@ export const useUiStore = create<UiState>()(
             : [...state.selectedRoadmapTaskIds, id],
         })),
       clearSelectedRoadmapTasks: () => set({ selectedRoadmapTaskIds: [] }),
+      toggleCollapsedPhaseTableColumn: (columnId) =>
+        set((state) => ({
+          collapsedPhaseTableColumnIds: state.collapsedPhaseTableColumnIds.includes(columnId)
+            ? state.collapsedPhaseTableColumnIds.filter((id) => id !== columnId)
+            : [...state.collapsedPhaseTableColumnIds, columnId],
+        })),
     }),
     {
       name: "timeline-ui-zoom",
@@ -159,6 +173,7 @@ export const useUiStore = create<UiState>()(
         roadmapZoomPercent: state.roadmapZoomPercent,
         taskTablePanelWidth: state.taskTablePanelWidth,
         taskTablePanelHeight: state.taskTablePanelHeight,
+        collapsedPhaseTableColumnIds: state.collapsedPhaseTableColumnIds,
       }),
     },
   ),
