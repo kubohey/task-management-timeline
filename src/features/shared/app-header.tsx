@@ -13,8 +13,8 @@ interface AppHeaderProps {
 }
 
 const TABS = [
-  { href: "/", label: "ガントチャート" },
-  { href: "/roadmap", label: "ロードマップ" },
+  { href: "/", label: "Gantt chart" },
+  { href: "/roadmap", label: "Roadmap" },
 ] as const;
 
 /**
