@@ -22,6 +22,23 @@ export const ZOOM_STEP_PERCENT = 10;
 const clampZoom = (value: number) =>
   Math.min(ZOOM_MAX_PERCENT, Math.max(ZOOM_MIN_PERCENT, value));
 
+/**
+ * Phase行のタスク表（Popoverオーバーレイ）の表示サイズ。ユーザー要望
+ *「表の表示サイズを自分で調整できるようにして」により、右下の隅をドラッグして
+ * 幅・高さを自由に変更できるようにする。全Phase共通の一つの設定として扱う
+ * （Phaseごとに覚えるのはやりすぎで、毎回同じ使い勝手を期待できる方が実用的）。
+ */
+export const TASK_TABLE_PANEL_DEFAULT_WIDTH_PX = 480;
+export const TASK_TABLE_PANEL_MIN_WIDTH_PX = 320;
+export const TASK_TABLE_PANEL_MAX_WIDTH_PX = 1200;
+export const TASK_TABLE_PANEL_DEFAULT_HEIGHT_PX = 320;
+export const TASK_TABLE_PANEL_MIN_HEIGHT_PX = 160;
+export const TASK_TABLE_PANEL_MAX_HEIGHT_PX = 900;
+const clampTaskTablePanelWidth = (value: number) =>
+  Math.min(TASK_TABLE_PANEL_MAX_WIDTH_PX, Math.max(TASK_TABLE_PANEL_MIN_WIDTH_PX, value));
+const clampTaskTablePanelHeight = (value: number) =>
+  Math.min(TASK_TABLE_PANEL_MAX_HEIGHT_PX, Math.max(TASK_TABLE_PANEL_MIN_HEIGHT_PX, value));
+
 interface UiState {
   timelineScale: TimelineScale;
   isFullscreen: boolean;
@@ -45,6 +62,10 @@ interface UiState {
   ganttZoomPercent: number;
   /** ロードマップ画面の拡大縮小率（%、100が等倍）。 */
   roadmapZoomPercent: number;
+  /** Phase行のタスク表（Popoverオーバーレイ）の幅（px）。右下の隅をドラッグして可変。 */
+  taskTablePanelWidth: number;
+  /** Phase行のタスク表（Popoverオーバーレイ）の高さ（px）。右下の隅をドラッグして可変。 */
+  taskTablePanelHeight: number;
   /**
    * ロードマップで複数選択中のタスクブロックid一覧。選択済みのブロックをドラッグ
    * すると、選択中のブロックすべてを同じ週数だけまとめて移動する
@@ -62,6 +83,7 @@ interface UiState {
   setDailyNoteWidth: (width: number) => void;
   setGanttZoomPercent: (value: number) => void;
   setRoadmapZoomPercent: (value: number) => void;
+  setTaskTablePanelSize: (size: { width: number; height: number }) => void;
   toggleSelectedRoadmapTask: (id: string) => void;
   clearSelectedRoadmapTasks: () => void;
 }
@@ -70,9 +92,11 @@ interface UiState {
  * UIの一時状態のみを保持するストア（永続データはSupabase側で管理）。
  * 折りたたみ状態などPhase 1以降で必要になる項目はここに追加していく。
  *
- * 画面全体の拡大縮小率（ganttZoomPercent/roadmapZoomPercent）のみ、ブラウザの
- * localStorageへ永続化する（ユーザー要望：「毎回100%にするのではなく、前回の
- * ズーム率のまま表示して欲しい」）。他の項目（タイムラインの基準日・選択状態など）は
+ * 画面全体の拡大縮小率（ganttZoomPercent/roadmapZoomPercent）とタスク表パネルの
+ * サイズ（taskTablePanelWidth/Height）のみ、ブラウザのlocalStorageへ永続化する
+ * （ユーザー要望：「毎回100%にするのではなく、前回のズーム率のまま表示して
+ * 欲しい」「表の表示サイズを自分で調整できるようにして」）。他の項目（タイムラインの
+ * 基準日・選択状態など）は
  * 画面を開くたびにリセットされるべき一時状態なので対象外（partializeで絞る）。
  * SSR時にlocalStorageへ触れて壊れないよう`skipHydration: true`にし、実際の
  * 読み込みはマウント後（`Providers`内）に`useUiStore.persist.rehydrate()`で行う。
@@ -90,6 +114,8 @@ export const useUiStore = create<UiState>()(
       dailyNoteWidth: DAILY_NOTE_DEFAULT_WIDTH_PX,
       ganttZoomPercent: 100,
       roadmapZoomPercent: 100,
+      taskTablePanelWidth: TASK_TABLE_PANEL_DEFAULT_WIDTH_PX,
+      taskTablePanelHeight: TASK_TABLE_PANEL_DEFAULT_HEIGHT_PX,
       selectedRoadmapTaskIds: [],
       setTimelineScale: (timelineScale) => set({ timelineScale }),
       setFullscreen: (isFullscreen) => set({ isFullscreen }),
@@ -111,6 +137,11 @@ export const useUiStore = create<UiState>()(
         }),
       setGanttZoomPercent: (value) => set({ ganttZoomPercent: clampZoom(value) }),
       setRoadmapZoomPercent: (value) => set({ roadmapZoomPercent: clampZoom(value) }),
+      setTaskTablePanelSize: ({ width, height }) =>
+        set({
+          taskTablePanelWidth: clampTaskTablePanelWidth(width),
+          taskTablePanelHeight: clampTaskTablePanelHeight(height),
+        }),
       toggleSelectedRoadmapTask: (id) =>
         set((state) => ({
           selectedRoadmapTaskIds: state.selectedRoadmapTaskIds.includes(id)
@@ -126,6 +157,8 @@ export const useUiStore = create<UiState>()(
       partialize: (state) => ({
         ganttZoomPercent: state.ganttZoomPercent,
         roadmapZoomPercent: state.roadmapZoomPercent,
+        taskTablePanelWidth: state.taskTablePanelWidth,
+        taskTablePanelHeight: state.taskTablePanelHeight,
       }),
     },
   ),

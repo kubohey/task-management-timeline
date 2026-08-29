@@ -1,8 +1,10 @@
 "use client";
 
-import { ClipboardCopyIcon, ClipboardPasteIcon, PlusIcon } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ClipboardCopyIcon, ClipboardPasteIcon, MoveDiagonalIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useUiStore } from "@/store/ui-store";
 import { buildObsidianTable } from "./obsidian-export";
 import { parseObsidianTable } from "./obsidian-import";
 import { PhaseTable } from "./phase-table";
@@ -18,11 +20,15 @@ interface PhaseTablePanelProps {
 }
 
 /**
- * Phase内タスク表を、タイムライン上のPhase行の直下にインライン表示するパネル。
- * モーダルで覆ってしまうとカレンダー（タイムライン）と並べて見られないため、
- * ページ内展開にしている。データはPhaseRowが常時取得したものをpropsで受け取る
+ * Phase内タスク表を、タイムライン上のPhase行の直下にPopoverオーバーレイとして
+ * 表示するパネル。データはPhaseRowが常時取得したものをpropsで受け取る
  * （タイムラインのチップ表示にも同じデータが必要なため）。
  * docs/spec.md §2.1「Phaseには Table 表示があり、タスク一覧表を開ける」
+ *
+ * 右下の隅をドラッグして表示サイズ（幅・高さ）を自由に変更できる
+ * （ユーザー要望：「表の表示サイズを自分で調整できるようにして」）。
+ * 幅はui-store経由でPhaseRow側のPopoverContentの幅にも反映される
+ * （全Phase共通の設定として扱う。localStorageに永続化）。
  */
 export function PhaseTablePanel({
   phaseId,
@@ -33,6 +39,33 @@ export function PhaseTablePanel({
 }: PhaseTablePanelProps) {
   const createRow = useCreateRow();
   const importRows = useImportObsidianRows();
+  const width = useUiStore((s) => s.taskTablePanelWidth);
+  const height = useUiStore((s) => s.taskTablePanelHeight);
+  const setSize = useUiStore((s) => s.setTaskTablePanelSize);
+  const sizeRef = useRef({ width, height });
+  useEffect(() => {
+    sizeRef.current = { width, height };
+  }, [width, height]);
+
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const { width: startWidth, height: startHeight } = sizeRef.current;
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      setSize({
+        width: startWidth + (moveEvent.clientX - startX),
+        height: startHeight + (moveEvent.clientY - startY),
+      });
+    };
+    const handleUp = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+  };
 
   const handleImport = async () => {
     let text: string;
@@ -61,7 +94,7 @@ export function PhaseTablePanel({
   };
 
   return (
-    <div className="border-b bg-muted/20 py-2">
+    <div className="relative border-b bg-muted/20 py-2">
       <div className="mb-2 flex items-center gap-2">
         <Button
           type="button"
@@ -86,10 +119,18 @@ export function PhaseTablePanel({
       ) : isError ? (
         <p className="text-sm text-destructive">データの取得に失敗しました。</p>
       ) : (
-        <div className="max-h-80 max-w-full overflow-auto rounded-md border bg-background">
+        <div className="max-w-full overflow-auto rounded-md border bg-background" style={{ height }}>
           <PhaseTable phaseId={phaseId} columns={columns} rows={rows} draggable />
         </div>
       )}
+      <div
+        onPointerDown={startResize}
+        title="ドラッグして表の表示サイズを変更"
+        className="absolute right-0 bottom-0 z-10 flex size-4 touch-none items-end justify-end pr-0.5 pb-0.5 text-muted-foreground/60 hover:text-foreground"
+        style={{ cursor: "nwse-resize" }}
+      >
+        <MoveDiagonalIcon className="size-3" />
+      </div>
     </div>
   );
 }

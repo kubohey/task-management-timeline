@@ -36,6 +36,7 @@ import { useCreatePlacement } from "@/features/task-placement/use-task-placement
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
 import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { cn } from "@/lib/utils";
+import { useUiStore } from "@/store/ui-store";
 import { INDENT_STEP_PX } from "./constants";
 import { StatusSelect } from "./status-select";
 import { useDeletePhase, useUpdatePhase } from "./use-hierarchy-mutations";
@@ -89,6 +90,10 @@ export function PhaseRow({
   const [tableDialogOpen, setTableDialogOpen] = useState(false);
   const updatePhase = useUpdatePhase();
   const deletePhase = useDeletePhase();
+  // タスク表（Popoverオーバーレイ）の幅。PhaseTablePanel側の右下リサイズハンドルで
+  // 変更され、ui-store経由でここへ反映される（ユーザー要望：「表の表示サイズを
+  // 自分で調整できるようにして」）。
+  const taskTablePanelWidth = useUiStore((s) => s.taskTablePanelWidth);
 
   // タイムラインのチップ表示にはテーブルの開閉に関わらず列/行/セルが必要なため常時取得する。
   const { columns, rows, isLoading, isError } = usePhaseTableData(phase.id, true);
@@ -295,7 +300,7 @@ export function PhaseRow({
             align="start"
             sideOffset={4}
             className="w-auto max-w-none rounded-md border bg-background p-0 shadow-lg"
-            style={{ width: SIDEBAR_WIDTH_PX }}
+            style={{ width: taskTablePanelWidth }}
           >
             <PhaseTablePanel
               phaseId={phase.id}
