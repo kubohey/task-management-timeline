@@ -40,13 +40,6 @@ import { StatusSelect } from "./status-select";
 import { useDeletePhase, useUpdatePhase } from "./use-hierarchy-mutations";
 import type { PhaseRecord } from "./types";
 
-/**
- * インライン表示のタスク表の最大幅（px）。行の幅（サイドバー＋カレンダー全幅）
- * いっぱいに広げるが、年表示は総日数が365日分と非常に広くなるため、そのまま
- * 使うと表が際限なく横に伸びてしまう。実用的な広さに収まるよう上限を設ける。
- */
-const TABLE_PANEL_MAX_WIDTH_PX = 1800;
-
 interface PhaseRowProps {
   phase: PhaseRecord;
   depth: number;
@@ -286,19 +279,17 @@ export function PhaseRow({
           />
         </div>
         {tableOpen && (
-          // タスク表を開いたとき、以前は幅をw-fit（内容に合わせて縮む）にしていたため
-          // サイドバー幅程度の狭い列に収まってしまい、テキストが折り返して縦に長くなり、
-          // 表自体の内部スクロールを何度もしないと追加したいセルが見えなくなっていた
-          // （ユーザー提供の修正案画像「タスクの追加方向が上なので…追加したいセルが
-          // 見えなくなる」）。行の幅（サイドバー＋カレンダー全体）いっぱいまで広げ、
-          // 横方向のスペースを活用することで折り返しを減らし、一覧性を確保する
-          // （画像の「タスクの追加方向を横方向にする」）。
+          // タスク表はカレンダーの日付列に埋め込む（行の全幅まで広げる）のではなく、
+          // Group/Subgroup/Project/Phaseの階層サイドバーと同様に、カレンダーの横に
+          // 固定して配置する（ユーザー提供の修正案画像「表は、カレンダーに埋め込む
+          // 形式ではなく、プロジェクトの表示と同様に、カレンダーの横に固定して配置
+          // してほしい」「カレンダーはプロジェクトの表示と、表の下をスライドしている
+          // イメージ」）。以前は行の全幅（サイドバー＋カレンダー全体）まで広げていたが、
+          // それだとカレンダーの日付列の領域まで表が入り込んでしまうため、サイドバーと
+          // 同じ幅に戻す。
           <div
             className="sticky left-0 z-10 bg-background"
-            style={{
-              width: Math.min(SIDEBAR_WIDTH_PX + totalWidth, TABLE_PANEL_MAX_WIDTH_PX),
-              paddingLeft: depth * INDENT_STEP_PX + 8,
-            }}
+            style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
           >
             <PhaseTablePanel
               phaseId={phase.id}
