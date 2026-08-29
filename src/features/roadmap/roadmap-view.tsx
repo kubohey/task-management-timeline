@@ -23,8 +23,6 @@ interface RoadmapViewProps {
 
 /** 追加ボタン列の予備幅（px）。 */
 const ADD_COLUMN_SLOT_WIDTH_PX = 40;
-/** マウント時に今週をこの週数分だけ上に余白を残してスクロールする。 */
-const SCROLL_LEAD_WEEKS = 3;
 
 /**
  * ロードマップタブ本体。週単位（月曜始まり）の行×Project単位の列でタスクを俯瞰する、
@@ -34,6 +32,9 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
   const { columns, tasks, projects, phases, isLoading, isError } = useRoadmapData();
   const weeks = useMemo(() => getRoadmapWeeks(), []);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // 列見出し行（sticky top）の実測高さ。今週を画面中央に揃える計算で、
+  // 常に画面上部を占有し続けるこの分を可視領域から差し引くために使う。
+  const headerRef = useRef<HTMLDivElement>(null);
   const roadmapZoomPercent = useUiStore((s) => s.roadmapZoomPercent);
   const setRoadmapZoomPercent = useUiStore((s) => s.setRoadmapZoomPercent);
   // scrollTopは実際の画面ピクセル（zoom適用後）で動くため、初回スクロール計算にも
@@ -55,19 +56,29 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
     return map;
   }, [tasks]);
 
-  // 初回表示時、今週が少し余白を残して見える位置までスクロールする。
+  // 初回表示時、今週が画面のちょうど中央あたりに来るようスクロール位置を調整する
+  // （メインのガントチャートの「今日」自動スクロールと同じ考え方、縦方向版）。
+  // isLoading中はまだ読み込み中メッセージしか描画されておらずscrollRef/headerRefが
+  // 未接続のため、isLoadingをこの効果の依存配列に含め、実際のグリッドがマウントされた
+  // （isLoadingがfalseになった）タイミングで実行する。
   useEffect(() => {
-    if (!scrollRef.current) return;
+    if (isLoading) return;
+    const container = scrollRef.current;
+    if (!container) return;
     const todayIndex = weeks.findIndex((week) => isCurrentWeek(week));
     if (todayIndex === -1) return;
     const zoomFactor = zoomRef.current / 100;
-    scrollRef.current.scrollTop = Math.max(
-      0,
-      (todayIndex - SCROLL_LEAD_WEEKS) * WEEK_ROW_HEIGHT_PX * zoomFactor,
-    );
-    // 初回マウント時のみでよい。
+    const rowHeight = WEEK_ROW_HEIGHT_PX * zoomFactor;
+    const headerHeight = headerRef.current?.offsetHeight ?? 0;
+    const visibleHeight = container.clientHeight - headerHeight;
+    if (visibleHeight <= 0) return;
+    const todayCenterPos = todayIndex * rowHeight + rowHeight / 2;
+    const targetScrollTop = todayCenterPos - visibleHeight / 2;
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+    container.scrollTop = Math.min(Math.max(0, targetScrollTop), maxScrollTop);
+    // weeksは初回計算後に変化しないため依存配列に含めない。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoading]);
 
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">読み込み中...</div>;
@@ -89,7 +100,7 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
             列見出し・週ラベルのsticky位置固定はスクロールコンテナ基準で効くため、
             このラッパーを挟んでも壊れない。 */}
         <div style={{ width: totalWidth, zoom: roadmapZoomPercent / 100 }}>
-          <div className="sticky top-0 z-20 flex border-b bg-background">
+          <div ref={headerRef} className="sticky top-0 z-20 flex border-b bg-background">
             <div
               className="sticky left-0 z-20 flex shrink-0 items-center border-r bg-background px-2 py-1.5 text-sm font-semibold"
               style={{ width: WEEK_LABEL_WIDTH_PX }}

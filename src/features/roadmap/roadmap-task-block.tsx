@@ -106,7 +106,12 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
         className="absolute top-0 left-0 z-10 h-1.5 w-full cursor-ns-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
         onPointerDown={startResize("start")}
       />
-      <div className="absolute top-0.5 right-0.5 z-10 hidden items-center gap-0.5 rounded bg-background/70 group-hover:flex">
+      {/* hidden/group-hover:flex（displayの出し入れ）ではなく、常時displayさせて
+          opacityだけで見せ隠しする。ColorPickerのPopoverはポータル表示され
+          group（このブロック）の外にDOM上存在するため、displayで消してしまうと
+          ポインタがポップオーバーへ移動した瞬間にトリガーごと消えて再表示が
+          繰り返され、位置計算が暴れて開けなくなる（ユーザー報告の表示ブレ）。 */}
+      <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 rounded bg-background/70 opacity-0 group-hover:opacity-100">
         {task.source_type === "manual" && (
           <ColorPicker
             color={task.color}
