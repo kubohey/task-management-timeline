@@ -279,25 +279,28 @@ export function PhaseRow({
           />
         </div>
         {tableOpen && (
-          // タスク表はカレンダーの日付列に埋め込む（行の全幅まで広げる）のではなく、
-          // Group/Subgroup/Project/Phaseの階層サイドバーと同様に、カレンダーの横に
-          // 固定して配置する（ユーザー提供の修正案画像「表は、カレンダーに埋め込む
-          // 形式ではなく、プロジェクトの表示と同様に、カレンダーの横に固定して配置
-          // してほしい」「カレンダーはプロジェクトの表示と、表の下をスライドしている
-          // イメージ」）。以前は行の全幅（サイドバー＋カレンダー全体）まで広げていたが、
-          // それだとカレンダーの日付列の領域まで表が入り込んでしまうため、サイドバーと
-          // 同じ幅に戻す。
-          <div
-            className="sticky left-0 z-10 bg-background"
-            style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
-          >
-            <PhaseTablePanel
-              phaseId={phase.id}
-              columns={columns}
-              rows={rows}
-              isLoading={isLoading}
-              isError={isError}
-            />
+          // タスク表はカレンダーの日付列に埋め込む（ドキュメントの流れに乗って下の
+          // Phase行を押し下げる）のではなく、オーバーレイとして浮かせて表示する
+          // （ユーザー提供の修正案画像「表は、カレンダーに埋め込む形式ではなく、
+          // プロジェクトの表示と同様に、カレンダーの横に固定して配置してほしい」
+          // 「私が求めているのはおそらく、オーバーレイです」）。
+          // 高さ0のsticky要素（横スクロール追従はこれまでどおり維持）の中に、
+          // position: absoluteの中身を重ねることで、横スクロールには追従しつつ
+          // 縦方向のドキュメントフローには一切影響を与えない（下のPhase行の位置が
+          // 動かない）浮遊パネルにしている。
+          <div className="sticky left-0 z-30 h-0 overflow-visible">
+            <div
+              className="absolute top-0 left-0 rounded-md border bg-background shadow-lg"
+              style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
+            >
+              <PhaseTablePanel
+                phaseId={phase.id}
+                columns={columns}
+                rows={rows}
+                isLoading={isLoading}
+                isError={isError}
+              />
+            </div>
           </div>
         )}
         <PhaseTableDialog
