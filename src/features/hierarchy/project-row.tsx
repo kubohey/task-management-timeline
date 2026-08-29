@@ -76,7 +76,7 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
                 patch: { is_collapsed: !project.is_collapsed },
               })
             }
-            title="Phaseの折りたたみ"
+            title="Collapse phases"
           >
             {project.is_collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
           </Button>
@@ -104,7 +104,7 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
               variant="ghost"
               size="icon-xs"
               onClick={() => setEditing(true)}
-              title="名前を編集"
+              title="Edit name"
             >
               ✏️
             </Button>
@@ -116,11 +116,9 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
               type="button"
               variant="ghost"
               size="icon-xs"
-              title="Projectを削除"
+              title="Delete project"
               onClick={() => {
-                if (
-                  confirm(`Project「${project.name}」を削除しますか？（配下のPhaseも削除されます）`)
-                ) {
+                if (confirm(`Delete project "${project.name}"? Its phases will also be deleted.`)) {
                   deleteProject.mutate(project.id);
                 }
               }}

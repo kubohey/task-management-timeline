@@ -39,7 +39,7 @@ export function InlineCreateButton({ label, placeholder, onCreate }: InlineCreat
       <Input
         autoFocus
         value={name}
-        placeholder={placeholder ?? `${label}名`}
+        placeholder={placeholder ?? `${label} name`}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
@@ -59,7 +59,7 @@ export function InlineCreateButton({ label, placeholder, onCreate }: InlineCreat
         className="h-7 w-40"
       />
       <Button type="button" size="sm" onClick={submit}>
-        追加
+        Add
       </Button>
     </div>
   );

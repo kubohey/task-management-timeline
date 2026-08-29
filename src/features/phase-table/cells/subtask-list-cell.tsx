@@ -46,7 +46,7 @@ export function SubtaskListCell({ value, onChange }: SubtaskListCellProps) {
             variant="ghost"
             size="icon-xs"
             onClick={() => onChange({ items: items.filter((_, i) => i !== index) })}
-            title="削除"
+            title="Delete"
           >
             <XIcon />
           </Button>
@@ -56,7 +56,7 @@ export function SubtaskListCell({ value, onChange }: SubtaskListCellProps) {
         <Input
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
-          placeholder="サブタスクを追加"
+          placeholder="Add subtask"
           className="h-6 flex-1 px-1.5 text-xs"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -65,7 +65,7 @@ export function SubtaskListCell({ value, onChange }: SubtaskListCellProps) {
             }
           }}
         />
-        <Button type="button" variant="ghost" size="icon-xs" onClick={addItem} title="追加">
+        <Button type="button" variant="ghost" size="icon-xs" onClick={addItem} title="Add">
           <PlusIcon />
         </Button>
       </div>

@@ -27,7 +27,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="icon-xs" title="背景色を変更">
+        <Button type="button" variant="ghost" size="icon-xs" title="Change background color">
           🎨
         </Button>
       </PopoverTrigger>
@@ -53,10 +53,10 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
             value={color ?? "#ffffff"}
             onChange={(e) => onChange(e.target.value)}
             className="h-7 w-9 cursor-pointer rounded border border-input bg-transparent p-0.5"
-            aria-label="カスタム背景色"
+            aria-label="Custom background color"
           />
           <Button type="button" variant="outline" size="sm" onClick={() => onChange(null)}>
-            リセット
+            Reset
           </Button>
         </div>
       </PopoverContent>

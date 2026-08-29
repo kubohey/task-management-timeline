@@ -70,10 +70,10 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
   }, []);
 
   if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">読み込み中...</div>;
+    return <div className="p-4 text-sm text-muted-foreground">Loading...</div>;
   }
   if (isError) {
-    return <div className="p-4 text-sm text-destructive">データの取得に失敗しました。</div>;
+    return <div className="p-4 text-sm text-destructive">Failed to load data.</div>;
   }
 
   const totalWidth =
@@ -94,7 +94,7 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
               className="sticky left-0 z-20 flex shrink-0 items-center border-r bg-background px-2 py-1.5 text-sm font-semibold"
               style={{ width: WEEK_LABEL_WIDTH_PX }}
             >
-              週単位
+              Week
             </div>
             {columns.map((column) => (
               <RoadmapColumnHeader key={column.id} column={column} />
@@ -109,7 +109,7 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
 
           {columns.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
-              列がまだありません。右上の「＋」からProjectを選んで列を追加してください。
+              No columns yet. Add one with the &quot;+&quot; button above and choose a project.
             </p>
           ) : (
             <div className="flex">

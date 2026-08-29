@@ -37,7 +37,7 @@ export function AddRoadmapColumnButton({ userId, projects, sortOrder }: AddRoadm
       }}
     >
       <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="icon-xs" title="列を追加（Projectを選択）">
+        <Button type="button" variant="ghost" size="icon-xs" title="Add column (choose a project)">
           <PlusIcon />
         </Button>
       </PopoverTrigger>
@@ -46,14 +46,14 @@ export function AddRoadmapColumnButton({ userId, projects, sortOrder }: AddRoadm
           <Input
             autoFocus
             value={query}
-            placeholder="Projectを検索"
+            placeholder="Search projects"
             onChange={(e) => setQuery(e.target.value)}
           />
           <div className="max-h-56 overflow-y-auto">
             {projects.length === 0 ? (
-              <p className="p-2 text-xs text-muted-foreground">Projectがまだありません。</p>
+              <p className="p-2 text-xs text-muted-foreground">No projects yet.</p>
             ) : filtered.length === 0 ? (
-              <p className="p-2 text-xs text-muted-foreground">見つかりませんでした。</p>
+              <p className="p-2 text-xs text-muted-foreground">No matches found.</p>
             ) : (
               filtered.map((project) => (
                 <button

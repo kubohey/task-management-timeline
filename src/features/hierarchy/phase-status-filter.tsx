@@ -23,7 +23,7 @@ export function PhaseStatusFilter() {
 
   return (
     <div className="flex items-center gap-1 text-sm">
-      <span className="text-muted-foreground">Phase絞り込み:</span>
+      <span className="text-muted-foreground">Filter phases:</span>
       {statuses.map((s) => {
         const hidden = hiddenPhaseStatuses.includes(s.id);
         return (
@@ -31,7 +31,7 @@ export function PhaseStatusFilter() {
             key={s.id}
             type="button"
             onClick={() => togglePhaseStatusFilter(s.id)}
-            title={hidden ? `${s.name}を表示する` : `${s.name}を非表示にする`}
+            title={hidden ? `Show ${s.name}` : `Hide ${s.name}`}
           >
             <Badge
               variant={hidden ? "outline" : "default"}
@@ -50,9 +50,7 @@ export function PhaseStatusFilter() {
       <button
         type="button"
         onClick={() => togglePhaseStatusFilter(NONE_KEY)}
-        title={
-          hiddenPhaseStatuses.includes(NONE_KEY) ? "未設定を表示する" : "未設定を非表示にする"
-        }
+        title={hiddenPhaseStatuses.includes(NONE_KEY) ? "Show unset" : "Hide unset"}
       >
         <Badge
           variant={hiddenPhaseStatuses.includes(NONE_KEY) ? "outline" : "secondary"}
@@ -61,7 +59,7 @@ export function PhaseStatusFilter() {
             hiddenPhaseStatuses.includes(NONE_KEY) && "text-muted-foreground opacity-50",
           )}
         >
-          未設定
+          None
         </Badge>
       </button>
     </div>

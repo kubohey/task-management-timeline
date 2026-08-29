@@ -70,7 +70,7 @@ export function RoadmapColumnHeader({ column }: RoadmapColumnHeaderProps) {
         type="button"
         variant="ghost"
         size="icon-xs"
-        title="ラベルを編集"
+        title="Edit label"
         onClick={() => setEditing(true)}
       >
         ✏️
@@ -79,9 +79,9 @@ export function RoadmapColumnHeader({ column }: RoadmapColumnHeaderProps) {
         type="button"
         variant="ghost"
         size="icon-xs"
-        title="列を削除"
+        title="Delete column"
         onClick={() => {
-          if (confirm(`列「${column.label}」を削除しますか？（埋め込んだタスクもすべて削除されます）`)) {
+          if (confirm(`Delete column "${column.label}"? Its task blocks will also be deleted.`)) {
             deleteColumn.mutate(column.id);
           }
         }}
@@ -90,7 +90,7 @@ export function RoadmapColumnHeader({ column }: RoadmapColumnHeaderProps) {
       </Button>
       <div
         onPointerDown={startResize}
-        title="ドラッグして列幅を変更"
+        title="Drag to resize column"
         className={cn(
           "absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none",
           "hover:bg-border",

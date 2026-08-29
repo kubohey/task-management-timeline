@@ -134,28 +134,28 @@ export function RichTextEditor({ value, onChange, toolbar = false, className }: 
         <div className="mb-1.5 flex items-center gap-0.5 border-b pb-1.5">
           <ToolbarButton
             active={editor.isActive("bold")}
-            title="太字"
+            title="Bold"
             onClick={() => editor.chain().focus().toggleBold().run()}
           >
             <BoldIcon />
           </ToolbarButton>
           <ToolbarButton
             active={editor.isActive("bulletList")}
-            title="箇条書き"
+            title="Bulleted list"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
           >
             <ListIcon />
           </ToolbarButton>
           <ToolbarButton
             active={editor.isActive("taskList")}
-            title="チェックリスト"
+            title="Checklist"
             onClick={() => editor.chain().focus().toggleTaskList().run()}
           >
             <ListChecksIcon />
           </ToolbarButton>
           <ToolbarButton
             active={editor.isActive("highlight")}
-            title="ハイライト"
+            title="Highlight"
             onClick={() => editor.chain().focus().toggleHighlight().run()}
           >
             <HighlighterIcon />

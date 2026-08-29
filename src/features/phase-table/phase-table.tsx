@@ -89,9 +89,9 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                title="列を削除"
+                title="Delete column"
                 onClick={() => {
-                  if (confirm(`列「${column.label}」を削除しますか？（この列のセルも削除されます）`)) {
+                  if (confirm(`Delete column "${column.label}"? Its cells will also be deleted.`)) {
                     deleteColumn.mutate({ id: column.id, phaseId });
                   }
                 }}
@@ -150,9 +150,9 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
               type="button"
               variant="ghost"
               size="icon-xs"
-              title="行を削除"
+              title="Delete row"
               onClick={() => {
-                if (confirm("この行を削除しますか？")) {
+                if (confirm("Delete this row?")) {
                   deleteRow.mutate({ id: row.original.row.id, phaseId });
                 }
               }}
@@ -236,7 +236,7 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
         {bodyRows.length === 0 ? (
           <TableRow>
             <TableCell colSpan={columnDefs.length} className="text-center text-muted-foreground">
-              行がありません。「+ 行」から追加してください。
+              No rows yet. Add one with &quot;+ Row&quot;.
             </TableCell>
           </TableRow>
         ) : (
@@ -282,7 +282,7 @@ function SortableTableRow({ row }: { row: LegacyRow<RowWithCells> }) {
             <button
               type="button"
               className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-              title="ドラッグして並び替え"
+              title="Drag to reorder"
               {...attributes}
               {...listeners}
             >

@@ -21,7 +21,7 @@ export function ZoomControl({ value, onChange }: ZoomControlProps) {
         type="button"
         variant="ghost"
         size="icon-xs"
-        title="縮小"
+        title="Zoom out"
         disabled={value <= ZOOM_MIN_PERCENT}
         onClick={() => onChange(value - ZOOM_STEP_PERCENT)}
       >
@@ -30,7 +30,7 @@ export function ZoomControl({ value, onChange }: ZoomControlProps) {
       <button
         type="button"
         className="w-10 text-center text-xs text-muted-foreground hover:text-foreground"
-        title="表示倍率を100%に戻す"
+        title="Reset zoom to 100%"
         onClick={() => onChange(100)}
       >
         {value}%
@@ -39,7 +39,7 @@ export function ZoomControl({ value, onChange }: ZoomControlProps) {
         type="button"
         variant="ghost"
         size="icon-xs"
-        title="拡大"
+        title="Zoom in"
         disabled={value >= ZOOM_MAX_PERCENT}
         onClick={() => onChange(value + ZOOM_STEP_PERCENT)}
       >

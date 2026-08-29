@@ -14,10 +14,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { TableColumnType } from "./types";
 
 const TYPE_LABELS: Record<TableColumnType, string> = {
-  checkbox: "チェックボックス",
-  text: "テキスト",
-  note_rich: "リッチテキスト",
-  subtask_list: "サブタスク一覧",
+  checkbox: "Checkbox",
+  text: "Text",
+  note_rich: "Rich text",
+  subtask_list: "Subtask list",
 };
 
 interface AddColumnPopoverProps {
@@ -44,7 +44,7 @@ export function AddColumnPopover({ onCreate }: AddColumnPopoverProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="icon-xs" title="列を追加">
+        <Button type="button" variant="ghost" size="icon-xs" title="Add column">
           <PlusIcon />
         </Button>
       </PopoverTrigger>
@@ -53,7 +53,7 @@ export function AddColumnPopover({ onCreate }: AddColumnPopoverProps) {
           <Input
             autoFocus
             value={label}
-            placeholder="列名"
+            placeholder="Column name"
             onChange={(e) => setLabel(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -77,7 +77,7 @@ export function AddColumnPopover({ onCreate }: AddColumnPopoverProps) {
             </DropdownMenuContent>
           </DropdownMenu>
           <Button type="button" size="sm" onClick={submit}>
-            追加
+            Add
           </Button>
         </div>
       </PopoverContent>
