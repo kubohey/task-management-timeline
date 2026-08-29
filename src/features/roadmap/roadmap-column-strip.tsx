@@ -99,8 +99,13 @@ export function RoadmapColumnStrip({
 
   // 並列表示（同じ週範囲で重なるブロック）の左右を入れ替える。隣のレーンにいる
   // タスク（週範囲が重なっているもの＝同じクラスター）を探し、lane_orderを
-  // 交換する（PhaseStatusManager/Phase一覧の▲▼と同じ、隣同士の値を入れ替える方式）。
+  // 交換して並び順を入れ替える。
   // ユーザー要望：「同じプロジェクト内で並列に置いたタスクを左右に入れ替えられない？」
+  //
+  // 単純に2者のlane_order値を入れ替えるだけだと、値が同じ（多くは初期値の0同士）
+  // だった場合に交換しても値が変わらず、見た目の順序も変わらない（ユーザー報告：
+  // 「◀▶ボタンが機能しない」）。そのため移動方向に応じて、隣のタスクの値を基準に
+  // 「必ずその前/後ろに来る」値を明示的に設定する。
   const swapLane = (task: RoadmapTaskRecord, direction: -1 | 1) => {
     const targetLane = (laneById[task.id] ?? 0) + direction;
     const neighbor = tasks.find(
@@ -112,7 +117,10 @@ export function RoadmapColumnStrip({
     if (!neighbor) {
       return;
     }
-    updateTask.mutate({ id: task.id, patch: { lane_order: neighbor.lane_order } });
+    updateTask.mutate({
+      id: task.id,
+      patch: { lane_order: neighbor.lane_order + direction },
+    });
     updateTask.mutate({ id: neighbor.id, patch: { lane_order: task.lane_order } });
   };
 
