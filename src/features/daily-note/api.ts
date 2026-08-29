@@ -41,7 +41,6 @@ export async function upsertDailyNote(input: {
 
 /** table_cells 1件をPostgREストの入れ子selectで取得したときの形。 */
 interface RawCell {
-  column_id: string;
   value: unknown;
   table_columns: { key: string } | null;
 }
@@ -58,7 +57,6 @@ interface RawPlacement {
       projects: {
         id: string;
         name: string;
-        color: string | null;
         sort_order: number;
       } | null;
     } | null;
@@ -71,6 +69,9 @@ interface RawPlacement {
  * 組み立てて取得する。task_placementsはPhase表の行への参照のため、行のセル
  * （チェックボックス・タスク名）まで1回のPostgREST入れ子selectでまとめて取る。
  * RLSは各テーブル自身のポリシーがjoin経由でもそのまま効く（docs/spec.md §5参照）。
+ *
+ * この結果はノート本文の初期値（タスク一覧の雛形）を組み立てる用途にのみ使う
+ * （§2.5「ノート保存後はPhase表と連動しない」）ため、Phase表の行ID列などは含めない。
  */
 export async function fetchDailyTasks(date: string): Promise<DailyTaskProjectGroup[]> {
   const supabase = createClient();
@@ -84,9 +85,9 @@ export async function fetchDailyTasks(date: string): Promise<DailyTaskProjectGro
         phase_id,
         phases (
           id, name, sort_order,
-          projects ( id, name, color, sort_order )
+          projects ( id, name, sort_order )
         ),
-        table_cells ( column_id, value, table_columns ( key ) )
+        table_cells ( value, table_columns ( key ) )
       )
     `,
     )
@@ -118,7 +119,6 @@ export async function fetchDailyTasks(date: string): Promise<DailyTaskProjectGro
       projectGroup = {
         projectId: project.id,
         projectName: project.name,
-        projectColor: project.color,
         sortOrder: project.sort_order,
         phases: [],
       };
@@ -131,14 +131,7 @@ export async function fetchDailyTasks(date: string): Promise<DailyTaskProjectGro
       projectGroup.phases.push(phaseGroup);
     }
 
-    phaseGroup.tasks.push({
-      placementId: placement.id,
-      rowId: row.id,
-      phaseId: row.phase_id,
-      checkboxColumnId: checkboxCell?.column_id,
-      checked,
-      taskName: taskName || "(無題のタスク)",
-    });
+    phaseGroup.tasks.push({ checked, taskName: taskName || "(無題のタスク)" });
   }
 
   const projectGroups = [...projectsById.values()];

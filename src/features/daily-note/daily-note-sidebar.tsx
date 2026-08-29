@@ -5,14 +5,13 @@ import { format, parseISO } from "date-fns";
 import { ClipboardCopyIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { getDayTextColorClass, getWeekdayLabel } from "@/features/timeline/date-utils";
 import { RichTextEditor } from "@/features/shared/rich-text-editor";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/ui-store";
-import { buildDailyNoteMarkdown } from "./obsidian-export";
+import { docToMarkdown } from "./obsidian-export";
 import { useDailyNoteData } from "./use-daily-note-data";
-import { useSaveDailyNote, useToggleDailyTask } from "./use-daily-note-mutations";
+import { useSaveDailyNote } from "./use-daily-note-mutations";
 
 interface DailyNoteSidebarProps {
   userId: string;
@@ -21,18 +20,19 @@ interface DailyNoteSidebarProps {
 
 /**
  * カレンダーの日付ヘッダーをクリックすると開く右サイドバー。
- * その日にカレンダー登録されたタスクをProject > Phase > タスクの階層で自動表示しつつ、
- * 自由記述のメモ（チェックリスト等）も書ける1枚のノートになっている。
- * Obsidianへ`- [ ]`形式のままコピペできる（docs/spec.md §2.5）。
+ * 1枚の自由記述ノート（Tiptap）で、初回に開いたときだけその日にカレンダー登録されている
+ * タスクを「プロジェクト名 → Phase名 → タスク名」のチェックリストとして本文に挿入する
+ * （雛形挿入はtask-list-doc.ts）。保存後はPhase表と独立した本文になり、ここでの編集
+ * （チェック・文言変更・削除等）はPhase表側に反映されない（docs/spec.md §2.5）。
+ * Obsidianへ`- [ ]`形式のままコピペできる。
  */
 export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
   const width = useUiStore((s) => s.dailyNoteWidth);
   const setWidth = useUiStore((s) => s.setDailyNoteWidth);
   const closeDailyNote = useUiStore((s) => s.closeDailyNote);
 
-  const { noteContent, projects, isLoading, isError } = useDailyNoteData(date, true);
+  const { content, isLoading, isError } = useDailyNoteData(date, true);
   const saveNote = useSaveDailyNote();
-  const toggleTask = useToggleDailyTask();
 
   const widthRef = useRef(width);
   useEffect(() => {
@@ -57,7 +57,7 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
   };
 
   const handleCopy = async () => {
-    const markdown = buildDailyNoteMarkdown(projects, noteContent);
+    const markdown = docToMarkdown(content);
     try {
       await navigator.clipboard.writeText(markdown);
       toast.success("Obsidian用にコピーしました");
@@ -103,79 +103,11 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
           ) : isError ? (
             <p className="text-sm text-destructive">データの取得に失敗しました。</p>
           ) : (
-            <>
-              <section>
-                <h3 className="mb-1.5 text-xs font-medium text-muted-foreground">
-                  この日のタスク
-                </h3>
-                {projects.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">登録されたタスクはありません。</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {projects.map((project) => (
-                      <div key={project.projectId}>
-                        <div className="flex items-center gap-1.5 text-sm font-semibold">
-                          {project.projectColor && (
-                            <span
-                              className="size-2 shrink-0 rounded-full"
-                              style={{ backgroundColor: project.projectColor }}
-                            />
-                          )}
-                          {project.projectName}
-                        </div>
-                        {project.phases.map((phase) => (
-                          <div key={phase.phaseId} className="pl-3.5">
-                            <div className="mt-1 text-xs font-medium text-muted-foreground">
-                              {phase.phaseName}
-                            </div>
-                            <div className="flex flex-col gap-0.5 pl-1">
-                              {phase.tasks.map((task) => (
-                                <label
-                                  key={task.placementId}
-                                  className="flex items-start gap-1.5 text-sm"
-                                >
-                                  <Checkbox
-                                    className="mt-0.5"
-                                    checked={task.checked}
-                                    disabled={!task.checkboxColumnId}
-                                    onCheckedChange={(checked) => {
-                                      if (!task.checkboxColumnId) return;
-                                      toggleTask.mutate({
-                                        rowId: task.rowId,
-                                        columnId: task.checkboxColumnId,
-                                        checked: checked === true,
-                                        date,
-                                        phaseId: task.phaseId,
-                                      });
-                                    }}
-                                  />
-                                  <span
-                                    className={cn(
-                                      task.checked && "text-muted-foreground line-through",
-                                    )}
-                                  >
-                                    {task.taskName}
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              <section className="mt-4 border-t pt-3">
-                <h3 className="mb-1.5 text-xs font-medium text-muted-foreground">メモ</h3>
-                <RichTextEditor
-                  toolbar
-                  value={noteContent}
-                  onChange={(content) => saveNote.mutate({ userId, date, content })}
-                />
-              </section>
-            </>
+            <RichTextEditor
+              toolbar
+              value={content}
+              onChange={(next) => saveNote.mutate({ userId, date, content: next })}
+            />
           )}
         </div>
       </div>

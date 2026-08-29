@@ -10,16 +10,14 @@ export interface DailyNoteRecord {
   updated_at: string;
 }
 
-/** その日にカレンダー登録された1タスク（Phase表の行への参照）。 */
+/**
+ * その日にカレンダー登録された1タスク。ノート作成時の初期本文（タスク一覧の雛形）を
+ * 組み立てるためだけに使う値であり、ノート保存後はPhase表の行との結びつきを持たない
+ * （§2.5「デイリーノート内の編集はPhase表と連動しない」）。
+ */
 export interface DailyTaskItem {
-  placementId: string;
-  rowId: string;
-  phaseId: string;
-  /** Phase表のチェックボックス列（1列目）のセルID。チェック操作は表側のセルを直接更新する。 */
-  checkboxColumnId: string | undefined;
-  /** Phase表のチェックボックス列（1列目）の値。ここでの操作は表側にもそのまま反映される。 */
-  checked: boolean;
   taskName: string;
+  checked: boolean;
 }
 
 export interface DailyTaskPhaseGroup {
@@ -32,7 +30,6 @@ export interface DailyTaskPhaseGroup {
 export interface DailyTaskProjectGroup {
   projectId: string;
   projectName: string;
-  projectColor: string | null;
   sortOrder: number;
   phases: DailyTaskPhaseGroup[];
 }

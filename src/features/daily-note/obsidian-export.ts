@@ -1,5 +1,4 @@
 import type { JSONContent } from "@tiptap/react";
-import type { DailyTaskProjectGroup } from "./types";
 
 const INDENT = "    ";
 
@@ -81,35 +80,11 @@ function taskItemToLines(item: JSONContent, depth: number): string[] {
   return lines;
 }
 
-/** ノート本文（Tiptap doc）をObsidian互換のMarkdownに変換する。 */
+/**
+ * ノート本文（Tiptap doc）をObsidian互換のMarkdownに変換する。タスク一覧（プロジェクト名
+ * → Phase名 → タスク名のチェックリスト）も、初回作成時に本文へ挿入された通常のリストとして
+ * ここで一緒に変換される（docs/spec.md §2.5）。
+ */
 export function docToMarkdown(doc: JSONContent): string {
   return (doc.content ?? []).flatMap((node) => blockToLines(node, 0)).join("\n");
-}
-
-/**
- * その日のタスク一覧を「プロジェクト名 > Phase名 > タスク名（チェックボックス）」の
- * 階層Markdownに変換する。
- */
-export function buildDailyTasksMarkdown(projects: DailyTaskProjectGroup[]): string {
-  return projects
-    .flatMap((project) => [
-      `- ${project.projectName}`,
-      ...project.phases.flatMap((phase) => [
-        `${INDENT}- ${phase.phaseName}`,
-        ...phase.tasks.map(
-          (task) => `${INDENT.repeat(2)}- [${task.checked ? "x" : " "}] ${task.taskName}`,
-        ),
-      ]),
-    ])
-    .join("\n");
-}
-
-/**
- * デイリータスクノート全体（自動生成のタスク階層＋自由記述メモ）をひとつの
- * Markdown文字列にまとめる。Obsidianへそのまま貼り付けるとチェックボックスが機能する。
- */
-export function buildDailyNoteMarkdown(projects: DailyTaskProjectGroup[], noteDoc: JSONContent): string {
-  const taskSection = buildDailyTasksMarkdown(projects);
-  const noteSection = docToMarkdown(noteDoc);
-  return [taskSection, noteSection].filter((section) => section.length > 0).join("\n\n");
 }
