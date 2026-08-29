@@ -54,3 +54,14 @@ export function buildDailyTaskListDoc(projects: DailyTaskProjectGroup[]): JSONCo
     content: [{ type: "bulletList", content: projectItems }, { type: "paragraph" }],
   };
 }
+
+/**
+ * 本文が実質空（空段落のみ、あるいはノード自体が無い）かどうかを判定する。
+ * RichTextEditorはフォーカスが外れるたびに（何も入力していなくても）自動保存するため、
+ * 一度も文字を書かないままノートが作成されることがある。そうした空のノートは
+ * 「一度も保存されていない」のと同じ扱いにして、タスクの雛形挿入を諦めないようにする。
+ */
+export function isBlankDoc(doc: JSONContent): boolean {
+  const content = doc.content ?? [];
+  return content.every((node) => node.type === "paragraph" && !node.content?.length);
+}
