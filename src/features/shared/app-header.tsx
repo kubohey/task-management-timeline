@@ -13,8 +13,8 @@ interface AppHeaderProps {
 }
 
 const TABS = [
-  { href: "/", label: "Gantt chart" },
-  { href: "/roadmap", label: "Roadmap" },
+  { href: "/", label: "ガントチャート" },
+  { href: "/roadmap", label: "ロードマップ" },
 ] as const;
 
 /**
@@ -50,7 +50,7 @@ export function AppHeader({ email, logoutAction }: AppHeaderProps) {
         <span>{email}</span>
         <form action={logoutAction}>
           <Button type="submit" variant="outline" size="sm">
-            Log out
+            ログアウト
           </Button>
         </form>
       </div>

@@ -57,17 +57,17 @@ export function PhaseStatusManager({ userId }: PhaseStatusManagerProps) {
     <>
       <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
         <SettingsIcon />
-        Manage statuses
+        status管理
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Manage phase statuses</DialogTitle>
+            <DialogTitle>Phaseのstatus管理</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
             {statuses.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No statuses yet. Add one below.
+                まだstatusがありません。下から追加してください。
               </p>
             )}
             {statuses.map((status, index) => (
@@ -80,7 +80,7 @@ export function PhaseStatusManager({ userId }: PhaseStatusManagerProps) {
                     className="h-4"
                     disabled={index === 0}
                     onClick={() => move(index, -1)}
-                    title="Move up"
+                    title="上へ"
                   >
                     <ArrowUpIcon className="size-3" />
                   </Button>
@@ -91,7 +91,7 @@ export function PhaseStatusManager({ userId }: PhaseStatusManagerProps) {
                     className="h-4"
                     disabled={index === statuses.length - 1}
                     onClick={() => move(index, 1)}
-                    title="Move down"
+                    title="下へ"
                   >
                     <ArrowDownIcon className="size-3" />
                   </Button>
@@ -117,7 +117,7 @@ export function PhaseStatusManager({ userId }: PhaseStatusManagerProps) {
                   variant="ghost"
                   size="icon-xs"
                   onClick={() => setEditingId(status.id)}
-                  title="Edit name"
+                  title="名前を編集"
                 >
                   ✏️
                 </Button>
@@ -125,11 +125,11 @@ export function PhaseStatusManager({ userId }: PhaseStatusManagerProps) {
                   type="button"
                   variant="ghost"
                   size="icon-xs"
-                  title="Delete"
+                  title="削除"
                   onClick={() => {
                     if (
                       confirm(
-                        `Delete status "${status.name}"? Phases with this status will revert to unset.`,
+                        `status「${status.name}」を削除しますか？（付与されているPhaseのstatusは未設定に戻ります）`,
                       )
                     ) {
                       deleteStatus.mutate(status.id);
@@ -144,7 +144,7 @@ export function PhaseStatusManager({ userId }: PhaseStatusManagerProps) {
           <div className="flex items-center gap-1.5 border-t pt-3">
             <Input
               value={newName}
-              placeholder="New status name"
+              placeholder="新しいstatus名"
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -156,7 +156,7 @@ export function PhaseStatusManager({ userId }: PhaseStatusManagerProps) {
             />
             <Button type="button" size="sm" onClick={addStatus}>
               <PlusIcon />
-              Add
+              追加
             </Button>
           </div>
         </DialogContent>

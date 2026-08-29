@@ -70,7 +70,7 @@ export function GroupRow({ group, depth, labelWidth, userId, allowSubgroup }: Gr
             onClick={() =>
               updateGroup.mutate({ id: group.id, patch: { is_collapsed: !group.is_collapsed } })
             }
-            title="Collapse children"
+            title="配下の折りたたみ"
           >
             {group.is_collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
           </Button>
@@ -107,7 +107,7 @@ export function GroupRow({ group, depth, labelWidth, userId, allowSubgroup }: Gr
               variant="ghost"
               size="icon-xs"
               onClick={() => setEditing(true)}
-              title="Edit name"
+              title="名前を編集"
             >
               ✏️
             </Button>
@@ -119,9 +119,9 @@ export function GroupRow({ group, depth, labelWidth, userId, allowSubgroup }: Gr
               type="button"
               variant="ghost"
               size="icon-xs"
-              title="Delete"
+              title="削除"
               onClick={() => {
-                if (confirm(`Delete "${group.name}"? Everything inside it will also be deleted.`)) {
+                if (confirm(`「${group.name}」を削除しますか？（配下も全て削除されます）`)) {
                   deleteGroup.mutate(group.id);
                 }
               }}

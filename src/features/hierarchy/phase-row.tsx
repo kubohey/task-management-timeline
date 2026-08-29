@@ -70,7 +70,7 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
   const handleDragStart = (event: DragStartEvent) => {
     const id = event.active.id;
     if (typeof id === "string" && id.startsWith("row:")) {
-      setDraggingTaskName((event.active.data.current?.taskName as string | undefined) || "(Untitled task)");
+      setDraggingTaskName((event.active.data.current?.taskName as string | undefined) || "(無題のタスク)");
     }
     setIsReordering(typeof id === "string" && id.startsWith(TABLE_ROW_SORTABLE_PREFIX));
   };
@@ -152,7 +152,7 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setEditing(true)}
-                title="Edit name"
+                title="名前を編集"
               >
                 ✏️
               </Button>
@@ -162,8 +162,8 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
                 size="icon-xs"
                 title={
                   tableOpen
-                    ? "Close task table (shown alongside the calendar)"
-                    : "Open task table (shown alongside the calendar)"
+                    ? "タスク表を閉じる（カレンダーと並べて表示）"
+                    : "タスク表を開く（カレンダーと並べて表示）"
                 }
                 onClick={() => setTableOpen((v) => !v)}
               >
@@ -173,7 +173,7 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                title="Open task table standalone"
+                title="タスク表を単体で開く"
                 onClick={() => setTableDialogOpen(true)}
               >
                 <Maximize2Icon />
@@ -182,9 +182,9 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                title="Delete phase"
+                title="Phaseを削除"
                 onClick={() => {
-                  if (confirm(`Delete phase "${phase.name}"?`)) {
+                  if (confirm(`Phase「${phase.name}」を削除しますか？`)) {
                     deletePhase.mutate(phase.id);
                   }
                 }}

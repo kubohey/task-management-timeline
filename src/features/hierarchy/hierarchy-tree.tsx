@@ -79,12 +79,12 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
   });
 
   if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading...</div>;
+    return <div className="p-4 text-sm text-muted-foreground">読み込み中...</div>;
   }
   if (isError) {
     return (
       <div className="flex flex-col gap-2 p-4 text-sm text-destructive">
-        <p>Failed to load data. Please wait a moment and reload.</p>
+        <p>データの取得に失敗しました。時間をおいて再読み込みしてください。</p>
         {/* 原因調査用：本来は非表示にすべきだが、間欠的に発生する不具合の原因特定のため一時的に表示する */}
         <ul className="list-disc pl-5 font-mono text-xs">
           {errors.map(({ label, error }) => (
@@ -94,7 +94,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
           ))}
         </ul>
         <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => location.reload()}>
-          Reload
+          再読み込み
         </Button>
       </div>
     );
@@ -120,14 +120,14 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
               <TimelineToolbar />
               <ZoomControl value={ganttZoomPercent} onChange={setGanttZoomPercent} />
               <div className="flex items-center gap-1 text-sm">
-                <span className="text-muted-foreground">Sort phases:</span>
+                <span className="text-muted-foreground">Phase並び替え:</span>
                 <Button
                   type="button"
                   variant={phaseSortMode === "manual" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setPhaseSortMode("manual")}
                 >
-                  Added order
+                  追加順
                 </Button>
                 <Button
                   type="button"
@@ -135,7 +135,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
                   size="sm"
                   onClick={() => setPhaseSortMode("status")}
                 >
-                  By status
+                  status順
                 </Button>
               </div>
               <PhaseStatusFilter />
@@ -145,7 +145,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => toggleFullscreen(containerRef)}
-                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                title={isFullscreen ? "全画面表示を終了" : "全画面表示"}
               >
                 {isFullscreen ? <Minimize2Icon /> : <Maximize2Icon />}
               </Button>
@@ -161,7 +161,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
                 <TimelineHeader />
                 {tree.length === 0 ? (
                   <p className="p-4 text-sm text-muted-foreground">
-                    No groups yet. Create one with &quot;+ Group&quot;.
+                    Groupがまだありません。「+ Group」から作成してください。
                   </p>
                 ) : (
                   <GroupsColumn tree={tree} rootLabelWidth={rootLabelWidth} userId={userId} />

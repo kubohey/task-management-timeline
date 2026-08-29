@@ -79,7 +79,7 @@ export function getDayBgColorClass(date: Date): string {
   return "bg-background";
 }
 
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
 /** ヘッダーセルに表示する曜日ラベル（例：「月」）。 */
 export function getWeekdayLabel(date: Date): string {
@@ -88,16 +88,16 @@ export function getWeekdayLabel(date: Date): string {
 
 /** ツールバーに表示する月ラベル（例：「2026年8月」）。 */
 export function formatMonthLabel(date: Date): string {
-  return format(date, "MMM yyyy");
+  return format(date, "yyyy年M月");
 }
 
 /** ツールバーに表示する、表示スケールに応じたラベル（月：「2026年8月」/日：「8/20 〜 9/2」/年：「2026年」）。 */
 export function formatAnchorLabel(scale: TimelineScale, anchor: Date): string {
   if (scale === "year") {
-    return format(anchor, "yyyy");
+    return format(anchor, "yyyy年");
   }
   if (scale === "day") {
-    return `${format(subDays(anchor, 7), "M/d")} - ${format(addDays(anchor, 6), "M/d")}`;
+    return `${format(subDays(anchor, 7), "M/d")} 〜 ${format(addDays(anchor, 6), "M/d")}`;
   }
   return formatMonthLabel(anchor);
 }

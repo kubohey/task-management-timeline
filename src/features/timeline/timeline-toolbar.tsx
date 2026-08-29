@@ -16,9 +16,9 @@ import { useUiStore, type TimelineScale } from "@/store/ui-store";
 import { formatAnchorLabel } from "./date-utils";
 
 const SCALE_LABELS: Record<TimelineScale, string> = {
-  day: "Day (2 wks)",
-  month: "Month",
-  year: "Year",
+  day: "日（2週間）",
+  month: "月",
+  year: "年",
 };
 
 /** タイムラインの表示スケール（日/月/年）切替と、前後ナビゲーションを提供する。 */
@@ -80,17 +80,17 @@ export function TimelineToolbar() {
           </Button>
         ))}
       </div>
-      <Button type="button" variant="ghost" size="icon-xs" onClick={() => shift(-1)} title="Previous">
+      <Button type="button" variant="ghost" size="icon-xs" onClick={() => shift(-1)} title="前へ">
         <ChevronLeftIcon />
       </Button>
       <span className="min-w-[8em] text-center font-medium">
         {formatAnchorLabel(scale, anchorDate)}
       </span>
-      <Button type="button" variant="ghost" size="icon-xs" onClick={() => shift(1)} title="Next">
+      <Button type="button" variant="ghost" size="icon-xs" onClick={() => shift(1)} title="次へ">
         <ChevronRightIcon />
       </Button>
       <Button type="button" variant="outline" size="sm" onClick={goToday}>
-        Today
+        今日
       </Button>
     </div>
   );

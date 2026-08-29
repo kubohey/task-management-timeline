@@ -98,7 +98,7 @@ export function RoadmapTaskPicker({
         <Input
           autoFocus
           value={manualText}
-          placeholder="Type to add directly"
+          placeholder="直接入力して追加"
           onChange={(e) => setManualText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -108,24 +108,24 @@ export function RoadmapTaskPicker({
           }}
         />
         <Button type="button" size="sm" disabled={!manualText.trim()} onClick={submitManual}>
-          Add
+          追加
         </Button>
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Separator className="flex-1" />
-        or choose an existing one
+        または既存から選択
         <Separator className="flex-1" />
       </div>
       <Input
         value={query}
-        placeholder="Search projects / phases"
+        placeholder="Project / Phaseを検索"
         onChange={(e) => setQuery(e.target.value)}
       />
       <div className="max-h-64 overflow-y-auto">
         {entries.length === 0 ? (
-          <p className="p-2 text-xs text-muted-foreground">No projects or phases yet.</p>
+          <p className="p-2 text-xs text-muted-foreground">ProjectまたはPhaseがまだありません。</p>
         ) : filtered.length === 0 ? (
-          <p className="p-2 text-xs text-muted-foreground">No matches found.</p>
+          <p className="p-2 text-xs text-muted-foreground">見つかりませんでした。</p>
         ) : (
           filtered.map((entry) => (
             <button

@@ -28,7 +28,7 @@ export function DraggableRowHandle({ rowId, taskName }: DraggableRowHandleProps)
         "cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing",
         isDragging && "opacity-40",
       )}
-      title="Drag to add to the timeline"
+      title="ドラッグしてタイムラインに登録"
       {...listeners}
       {...attributes}
     >

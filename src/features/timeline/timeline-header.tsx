@@ -21,7 +21,7 @@ interface MonthGroup {
 function buildMonthGroups(days: Date[], startIndex: number, endIndex: number): MonthGroup[] {
   const groups: MonthGroup[] = [];
   for (let i = startIndex; i <= endIndex; i++) {
-    const label = format(days[i], "MMM yyyy");
+    const label = format(days[i], "yyyy年M月");
     const last = groups[groups.length - 1];
     if (last && last.label === label) {
       last.span += 1;
@@ -84,7 +84,7 @@ export function TimelineHeader() {
               <button
                 key={day.toISOString()}
                 type="button"
-                title="Click to open this day's note"
+                title="クリックしてこの日のノートを開く"
                 onClick={() => openDailyNote(iso)}
                 className={cn(
                   "flex shrink-0 flex-col items-center border-r py-1 text-xs hover:brightness-95",

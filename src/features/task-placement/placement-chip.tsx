@@ -157,10 +157,10 @@ export function PlacementChip({
             <button
               type="button"
               className="hidden shrink-0 rounded hover:bg-foreground/10 group-hover:block"
-              title="Remove"
+              title="登録を削除"
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm("Remove this timeline entry? The original task will remain.")) {
+                if (confirm("このタイムライン登録を削除しますか？（元のタスクは残ります）")) {
                   deletePlacement.mutate({ id: placement.id, phaseId });
                 }
               }}

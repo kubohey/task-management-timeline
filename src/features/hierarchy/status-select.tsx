@@ -45,7 +45,7 @@ export function StatusSelect({ statusId, onChange }: StatusSelectProps) {
       <DropdownMenuContent>
         {statuses.length === 0 && (
           <div className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">
-            No statuses yet. Add one from &quot;Manage statuses&quot; in the toolbar.
+            statusが未登録です。ツールバーの「status管理」から追加してください。
           </div>
         )}
         {statuses.map((s) => (
@@ -60,7 +60,7 @@ export function StatusSelect({ statusId, onChange }: StatusSelectProps) {
         ))}
         <DropdownMenuItem onSelect={() => onChange(null)}>
           {!statusId ? <CheckIcon className="size-3.5" /> : <span className="size-3.5" />}
-          None
+          未設定
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -131,7 +131,7 @@ export async function fetchDailyTasks(date: string): Promise<DailyTaskProjectGro
       projectGroup.phases.push(phaseGroup);
     }
 
-    phaseGroup.tasks.push({ checked, taskName: taskName || "(Untitled task)" });
+    phaseGroup.tasks.push({ checked, taskName: taskName || "(無題のタスク)" });
   }
 
   const projectGroups = [...projectsById.values()];

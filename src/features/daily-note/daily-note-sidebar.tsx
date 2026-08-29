@@ -60,9 +60,9 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
     const markdown = docToMarkdown(content);
     try {
       await navigator.clipboard.writeText(markdown);
-      toast.success("Copied for Obsidian");
+      toast.success("Obsidian用にコピーしました");
     } catch {
-      toast.error("Couldn't copy to the clipboard");
+      toast.error("クリップボードへのコピーに失敗しました");
     }
   };
 
@@ -72,24 +72,24 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
     <div className="relative flex h-full shrink-0 border-l bg-background" style={{ width }}>
       <div
         onPointerDown={startResize}
-        title="Drag to resize"
+        title="ドラッグして幅を変更"
         className="absolute top-0 bottom-0 left-0 z-10 w-1.5 -translate-x-1/2 cursor-col-resize touch-none hover:bg-border active:bg-primary"
       />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
           <div className={cn("text-sm font-semibold", getDayTextColorClass(day))}>
-            {format(day, "MMM d, yyyy")} ({getWeekdayLabel(day)})
+            {format(day, "yyyy年M月d日")}（{getWeekdayLabel(day)}）
           </div>
           <div className="flex items-center gap-1">
             <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
               <ClipboardCopyIcon />
-              Copy for Obsidian
+              Obsidianへコピー
             </Button>
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
-              title="Close"
+              title="閉じる"
               onClick={closeDailyNote}
             >
               <XIcon />
@@ -99,9 +99,9 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
 
         <div className="flex-1 overflow-y-auto p-3">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">読み込み中...</p>
           ) : isError ? (
-            <p className="text-sm text-destructive">Failed to load data.</p>
+            <p className="text-sm text-destructive">データの取得に失敗しました。</p>
           ) : (
             <RichTextEditor
               toolbar

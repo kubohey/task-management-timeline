@@ -45,12 +45,12 @@ export function PhaseTableDialog({
     try {
       text = await navigator.clipboard.readText();
     } catch {
-      toast.error("Couldn't read the clipboard");
+      toast.error("クリップボードを読み取れませんでした");
       return;
     }
     const parsed = parseObsidianTable(text);
     if (parsed.length === 0) {
-      toast("No Markdown table found on the clipboard");
+      toast("クリップボードにMarkdown表が見つかりませんでした");
       return;
     }
     importRows.mutate({ phaseId, columns, parsedRows: parsed, baseSortOrder: rows.length });
@@ -60,9 +60,9 @@ export function PhaseTableDialog({
     const text = buildObsidianTable(columns, rows);
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied the table for Obsidian to the clipboard");
+      toast.success("Obsidian用の表をクリップボードにコピーしました");
     } catch {
-      toast.error("Couldn't copy to the clipboard");
+      toast.error("クリップボードへのコピーに失敗しました");
     }
   };
 
@@ -70,7 +70,7 @@ export function PhaseTableDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{phaseName} task table</DialogTitle>
+          <DialogTitle>{phaseName} のタスク表</DialogTitle>
         </DialogHeader>
         <div className="flex items-center gap-2">
           <Button
@@ -80,22 +80,22 @@ export function PhaseTableDialog({
             disabled={columns.length === 0}
             onClick={() => createRow.mutate({ phaseId, columns, sortOrder: rows.length })}
           >
-            <PlusIcon />Row
+            <PlusIcon />行
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={handleImport}>
             <ClipboardPasteIcon />
-            Paste from Obsidian
+            Obsidianから貼り付け
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={handleExport}>
             <ClipboardCopyIcon />
-            Copy for Obsidian
+            Obsidianへコピー
           </Button>
         </div>
         <div className="max-h-[70vh] overflow-auto">
           {isLoading ? (
-            <p className="p-4 text-sm text-muted-foreground">Loading...</p>
+            <p className="p-4 text-sm text-muted-foreground">読み込み中...</p>
           ) : isError ? (
-            <p className="p-4 text-sm text-destructive">Failed to load data.</p>
+            <p className="p-4 text-sm text-destructive">データの取得に失敗しました。</p>
           ) : (
             <PhaseTable phaseId={phaseId} columns={columns} rows={rows} />
           )}

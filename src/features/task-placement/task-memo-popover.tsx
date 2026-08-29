@@ -41,10 +41,10 @@ export function TaskMemoPopover({
     <Popover>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="max-h-[70vh] w-96 overflow-y-auto" align="start">
-        <PopoverTitle>{taskName || "(Untitled task)"}</PopoverTitle>
+        <PopoverTitle>{taskName || "(無題のタスク)"}</PopoverTitle>
         {noteColumnId && (
           <div className="mt-2">
-            <p className="mb-1 text-xs font-medium text-muted-foreground">Notes</p>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">備考</p>
             <RichTextEditor
               toolbar
               value={noteValue?.doc ?? emptyDoc()}
@@ -56,7 +56,7 @@ export function TaskMemoPopover({
         )}
         {subtaskColumnId && (
           <div className="mt-3">
-            <p className="mb-1 text-xs font-medium text-muted-foreground">Subtasks</p>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">サブタスク</p>
             <SubtaskListCell
               value={subtaskValue}
               onChange={(value) =>

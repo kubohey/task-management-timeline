@@ -90,11 +90,11 @@ function DayCell({ id, date, className, phaseId, columns, sortOrder, dayWidth }:
       </PopoverTrigger>
       <PopoverContent className="w-56" align="start">
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">Add task for {format(date, "M/d")}</p>
+          <p className="text-xs text-muted-foreground">{format(date, "M月d日")}にタスクを追加</p>
           <Input
             autoFocus
             value={taskName}
-            placeholder="Task name"
+            placeholder="タスク名"
             onChange={(e) => setTaskName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -104,7 +104,7 @@ function DayCell({ id, date, className, phaseId, columns, sortOrder, dayWidth }:
             }}
           />
           <Button type="button" size="sm" onClick={submit}>
-            Add
+            追加
           </Button>
         </div>
       </PopoverContent>
@@ -162,7 +162,7 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
         const label =
           (taskNameColumnId
             ? (sourceRow?.cells[taskNameColumnId] as TextCellValue | undefined)?.text
-            : undefined) || "(Untitled task)";
+            : undefined) || "(無題のタスク)";
 
         return (
           <PlacementChip

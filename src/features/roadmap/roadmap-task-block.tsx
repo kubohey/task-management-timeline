@@ -116,10 +116,10 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
         <button
           type="button"
           className="rounded p-1 hover:bg-background"
-          title="Delete"
+          title="削除"
           onClick={(e) => {
             e.stopPropagation();
-            if (confirm("Delete this task block?")) {
+            if (confirm("このタスクブロックを削除しますか？")) {
               deleteTask.mutate(task.id);
             }
           }}
