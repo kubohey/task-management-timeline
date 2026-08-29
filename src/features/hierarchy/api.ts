@@ -147,6 +147,20 @@ export async function deletePhase(id: string) {
   if (error) throw error;
 }
 
+/**
+ * Phaseをドラッグで並び替えた後、新しい並び順どおりにsort_orderを振り直す。
+ * Phase内タスク表の行並び替え（use-phase-table-mutations.tsのreorderTableRows）と
+ * 同じ方式：行数分の個別updateを並列実行する。
+ */
+export async function reorderPhases(orderedPhaseIds: string[]) {
+  const supabase = createClient();
+  const results = await Promise.all(
+    orderedPhaseIds.map((id, index) => supabase.from("phases").update({ sort_order: index }).eq("id", id)),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+}
+
 // ============================================================
 // phase_statuses（Phaseに付与できるstatusのユーザー定義一覧）
 // ============================================================

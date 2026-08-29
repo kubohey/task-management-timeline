@@ -56,8 +56,10 @@ tags: [spec, task-management-timeline]
   - statusでソートできる（並び順はstatus管理画面での並び替え順に従う）
   - statusで絞り込み（表示/非表示）できる
 - Phase一覧には表示順の番号（1始まり）を振る。「Phase並び替え：追加順」表示のときは、
-  各Phase行の▲▼ボタンで上下のPhaseと入れ替えられる（隣同士のsort_orderを交換）。
-  「status順」表示のときは並びがstatusに従うため▲▼は出さない
+  各Phase行の▲▼ボタンで上下のPhaseと入れ替えられる（隣同士のsort_orderを交換）ほか、
+  グリップ（⣿）をドラッグ&ドロップして任意の位置へ並び替えることもできる
+  （Phase表の行並び替えと同じ`@dnd-kit/sortable`方式）。
+  「status順」表示のときは並びがstatusに従うため▲▼・ドラッグとも出さない
 
 ### 2.2 Phase内タスク表
 
@@ -349,3 +351,4 @@ roadmap_tasks (id, column_id, source_type[project|phase], source_project_id null
 | 2026-08-29 | ロードマップに、既存Project/Phaseを選ばず週セルへ直接テキストを書き込んで作る「手動タスクブロック」を追加（`source_type='manual'`）。埋め込み元を持たないこのブロックだけ、既存の`ColorPicker`で背景色を自分で選べるようにした（`roadmap_tasks.color`列を追加、DBマイグレーション`supabase/migrations/0007_roadmap_manual_tasks.sql`はユーザー側で適用が必要）。あわせて、ガントチャート・ロードマップ双方にCSSの`zoom`プロパティによる画面全体の拡大縮小（`ZoomControl`、50%〜150%）をツールバーへ追加し、「今日/今週へ自動スクロール」の計算がzoom倍率を考慮するよう対応。共通ヘッダー（`AppHeader`）の表示切替タブの表記のみ英語（Gantt chart / Roadmap）に変更（ユーザー要望により、それ以外の画面内表記は日本語のまま） |
 | 2026-08-29 | ロードマップの初回表示スクロール位置を、今週が画面中央に来るよう修正（データ読み込み中にスクロール処理が空振りしていた不具合もあわせて修正）。また、手動タスクブロックの🎨/削除ボタンをdisplayの出し入れ（`hidden`/`group-hover:flex`）からopacityによる表示切替に変更し、ColorPickerのPopover操作中にトリガーの位置情報が消えて表示が高速に明滅し色を選べなくなる不具合を修正 |
 | 2026-08-29 | ユーザー要望により、ガントチャートのPhase一覧に表示順の番号（1始まり）を追加。「Phase並び替え：追加順」表示のときは、各Phase行に▲▼ボタンを追加し、隣のPhaseとsort_orderを入れ替えて上下に並び替えられるようにした（status順表示のときは並びがstatusに従うため▲▼は出さない） |
+| 2026-08-29 | ユーザー要望「ドラッグでの入れ替えをしてもらえると助かる」により、Phase並び替え（追加順表示時）にドラッグ&ドロップも追加。Phase表の行並び替え（SortableTableRow）と同じ考え方で、project-row.tsx側にPhase一覧用のDndContext/SortableContextを新設し、PhaseRowの外側にドラッグ専用のSortablePhaseRowラッパーを追加（PhaseRow自身が持つ別のDndContext――カレンダー登録用ドラッグ・表内行並び替え用ドラッグ――とは独立）。ドロップ時は`reorderPhases`（新設）で並び順どおりsort_orderを振り直し、楽観的更新で即座に画面へ反映する。▲▼ボタンと共存し、両方とも「Phase並び替え：追加順」表示のときだけ利用できる |

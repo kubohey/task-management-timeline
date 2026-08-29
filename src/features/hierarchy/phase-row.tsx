@@ -9,10 +9,20 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DraggableAttributes,
+  type DraggableSyntheticListeners,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
-import { ArrowDownIcon, ArrowUpIcon, Maximize2Icon, TableIcon, Trash2Icon } from "lucide-react";
+import { arrayMove, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  GripVerticalIcon,
+  Maximize2Icon,
+  TableIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { PhaseTableDialog } from "@/features/phase-table/phase-table-dialog";
@@ -44,6 +54,15 @@ interface PhaseRowProps {
    */
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  /**
+   * ドラッグ並び替え用のグリップに渡すdnd-kitのハンドラ一式。SortablePhaseRow
+   * （project-row.tsxから使われる）経由でのみ渡され、追加順表示のときだけ存在する
+   * （onMoveUp/onMoveDownと同じくundefined＝グリップ非表示）。
+   */
+  dragHandleProps?: {
+    attributes: DraggableAttributes;
+    listeners: DraggableSyntheticListeners;
+  };
 }
 
 /**
@@ -62,6 +81,7 @@ export function PhaseRow({
   orderNumber,
   onMoveUp,
   onMoveDown,
+  dragHandleProps,
 }: PhaseRowProps) {
   const [editing, setEditing] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
@@ -152,6 +172,17 @@ export function PhaseRow({
             className="sticky left-0 z-10 flex shrink-0 items-center gap-2 border border-transparent bg-background px-2 py-1.5 hover:border-border"
             style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
           >
+            {dragHandleProps && (
+              <button
+                type="button"
+                className="shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                title="ドラッグして並び替え"
+                {...dragHandleProps.attributes}
+                {...dragHandleProps.listeners}
+              >
+                <GripVerticalIcon className="size-3.5" />
+              </button>
+            )}
             {(onMoveUp || onMoveDown) && (
               <div className="flex shrink-0 flex-col">
                 <Button
@@ -286,5 +317,38 @@ export function PhaseRow({
         )}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+interface SortablePhaseRowProps extends Omit<PhaseRowProps, "dragHandleProps"> {
+  /** trueのとき（Phase並び替え：追加順表示）だけドラッググリップを表示・有効化する。 */
+  draggable: boolean;
+}
+
+/**
+ * project-row.tsxのSortableContext配下で使う、ドラッグ並び替え可能なPhase行の
+ * 外側ラッパー。PhaseRow自身は行内でカレンダー登録用ドラッグ・表内行の並び替え用
+ * ドラッグという別のDndContextを持つため、Phase同士の並び替えはこの外側で
+ * useSortableを使い、グリップのattributes/listenersだけをPhaseRowへ渡す
+ * （PhaseTable側のSortableTableRowと同じ考え方）。
+ */
+export function SortablePhaseRow({ draggable, ...phaseRowProps }: SortablePhaseRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: phaseRowProps.phase.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        position: "relative",
+        zIndex: isDragging ? 1 : undefined,
+        opacity: isDragging ? 0.6 : undefined,
+      }}
+    >
+      <PhaseRow {...phaseRowProps} dragHandleProps={draggable ? { attributes, listeners } : undefined} />
+    </div>
   );
 }

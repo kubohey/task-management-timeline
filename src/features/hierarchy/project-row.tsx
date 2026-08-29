@@ -1,6 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ChevronDownIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/features/shared/color-picker";
@@ -13,11 +22,12 @@ import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { useUiStore } from "@/store/ui-store";
 import type { ProjectNode } from "./build-tree";
 import { INDENT_STEP_PX } from "./constants";
-import { PhaseRow } from "./phase-row";
+import { SortablePhaseRow } from "./phase-row";
 import { usePhaseStatuses } from "./phase-statuses-context";
 import {
   useCreatePhase,
   useDeleteProject,
+  useReorderPhases,
   useUpdatePhase,
   useUpdateProject,
 } from "./use-hierarchy-mutations";
@@ -35,6 +45,8 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
   const deleteProject = useDeleteProject();
   const createPhase = useCreatePhase();
   const updatePhase = useUpdatePhase();
+  const reorderPhases = useReorderPhases();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const phaseSortMode = useUiStore((s) => s.phaseSortMode);
   const hiddenPhaseStatuses = useUiStore((s) => s.hiddenPhaseStatuses);
   const statuses = usePhaseStatuses();
@@ -71,6 +83,25 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
     }
     updatePhase.mutate({ id: current.id, patch: { sort_order: target.sort_order } });
     updatePhase.mutate({ id: target.id, patch: { sort_order: current.sort_order } });
+  };
+
+  // ▲▼ボタンと同じく、追加順表示のときだけドラッグで並び替えられる
+  // （ユーザー要望：「ドラッグでの入れ替えをしてもらえると助かる」）。
+  const handlePhaseDragEnd = (event: DragEndEvent) => {
+    if (phaseSortMode !== "manual") {
+      return;
+    }
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      return;
+    }
+    const oldIndex = phases.findIndex((p) => p.id === active.id);
+    const newIndex = phases.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+    const reordered = arrayMove(phases, oldIndex, newIndex);
+    reorderPhases.mutate(reordered.map((p) => p.id));
   };
 
   return (
@@ -152,29 +183,34 @@ export function ProjectRow({ project, depth, labelWidth }: ProjectRowProps) {
         <CalendarRowCells />
       </div>
       {!project.is_collapsed && phases.length > 0 && (
-        <div
-          className="flex flex-col gap-1 py-1"
-          style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}
-        >
-          {phases.map((phase, index) => (
-            <PhaseRow
-              key={phase.id}
-              phase={phase}
-              depth={depth + 1}
-              labelWidth={phaseLabelWidth}
-              projectColor={project.color}
-              orderNumber={index + 1}
-              onMoveUp={
-                phaseSortMode === "manual" && index > 0 ? () => movePhase(index, -1) : undefined
-              }
-              onMoveDown={
-                phaseSortMode === "manual" && index < phases.length - 1
-                  ? () => movePhase(index, 1)
-                  : undefined
-              }
-            />
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhaseDragEnd}>
+          <SortableContext items={phases.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+            <div
+              className="flex flex-col gap-1 py-1"
+              style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}
+            >
+              {phases.map((phase, index) => (
+                <SortablePhaseRow
+                  key={phase.id}
+                  phase={phase}
+                  depth={depth + 1}
+                  labelWidth={phaseLabelWidth}
+                  projectColor={project.color}
+                  orderNumber={index + 1}
+                  draggable={phaseSortMode === "manual"}
+                  onMoveUp={
+                    phaseSortMode === "manual" && index > 0 ? () => movePhase(index, -1) : undefined
+                  }
+                  onMoveDown={
+                    phaseSortMode === "manual" && index < phases.length - 1
+                      ? () => movePhase(index, 1)
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

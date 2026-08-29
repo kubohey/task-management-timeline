@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import * as api from "./api";
+import type { PhaseRecord } from "./types";
 
 export function useCreateGroup() {
   const queryClient = useQueryClient();
@@ -75,6 +76,41 @@ export function useDeletePhase() {
   return useMutation({
     mutationFn: (id: string) => api.deletePhase(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["phases"] }),
+  });
+}
+
+/**
+ * Phaseのドラッグ並び替え。楽観的更新で"phases"キャッシュ（全Project共通の
+ * フラットな一覧）のうち、渡されたid群のsort_orderだけを即座に並び替え、
+ * ドロップ直後にサーバーの応答を待たず画面上の順序を確定させる
+ * （use-phase-table-mutations.tsのuseReorderRowsと同じ方式）。
+ */
+export function useReorderPhases() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orderedPhaseIds: string[]) => api.reorderPhases(orderedPhaseIds),
+    onMutate: async (orderedPhaseIds) => {
+      const queryKey: QueryKey = ["phases"];
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<PhaseRecord[]>(queryKey);
+      if (previous) {
+        const orderById = new Map(orderedPhaseIds.map((id, index) => [id, index]));
+        const next = previous.map((phase) => {
+          const nextOrder = orderById.get(phase.id);
+          return nextOrder === undefined ? phase : { ...phase, sort_order: nextOrder };
+        });
+        queryClient.setQueryData(queryKey, next);
+      }
+      return { previous, queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["phases"] });
+    },
   });
 }
 
