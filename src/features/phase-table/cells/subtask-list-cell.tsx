@@ -5,6 +5,7 @@ import { PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import type { SubtaskListCellValue } from "../types";
 
 interface SubtaskListCellProps {
@@ -15,6 +16,9 @@ interface SubtaskListCellProps {
 /** サブタスク（チェックボックス付き項目をいくつでも追加できる）の一覧編集セル。docs/spec.md §2.2 */
 export function SubtaskListCell({ value, onChange }: SubtaskListCellProps) {
   const [newLabel, setNewLabel] = useState("");
+  // 追加済みのサブタスクの文字を編集中の項目index（一度に1件のみ）。
+  // ユーザー要望「サブタスクの文字を編集したい」（従来は追加後に文字を直せなかった）。
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const items = value?.items ?? [];
 
   const addItem = () => {
@@ -38,9 +42,26 @@ export function SubtaskListCell({ value, onChange }: SubtaskListCellProps) {
               })
             }
           />
-          <span className="flex-1 truncate text-sm" title={item.label}>
-            {item.label}
-          </span>
+          <InlineEditableText
+            value={item.label}
+            editing={editingIndex === index}
+            onEditingChange={(next) => setEditingIndex(next ? index : null)}
+            onSubmit={(label) =>
+              onChange({
+                items: items.map((it, i) => (i === index ? { ...it, label } : it)),
+              })
+            }
+            className="flex-1 text-sm"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setEditingIndex(index)}
+            title="編集"
+          >
+            ✏️
+          </Button>
           <Button
             type="button"
             variant="ghost"
