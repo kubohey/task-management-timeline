@@ -202,6 +202,15 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
               sensors={columnDragSensors}
               collisionDetection={closestCenter}
               onDragEnd={handleColumnDragEnd}
+              // 列見出しは画面上端付近（sticky top）にあるため、既定のautoScroll
+              // （上下左右どちらの端に近づいても閾値20%でスクロールする）のままだと、
+              // 横方向にドラッグしているだけでポインタが上端に近いというだけで
+              // 縦方向のオートスクロールも発火してしまう（ユーザー報告：「列を
+              // ドラッグ時に、縦にスクロールしてしまう」）。列の並び替えは横方向のみの
+              // 操作のため、縦方向のオートスクロールしきい値を0にして無効化する
+              // （表内の行並び替え時に横方向を無効化しているphase-row.tsxの
+              // autoScrollと同じ考え方）。
+              autoScroll={{ threshold: { x: 0.2, y: 0 } }}
             >
               <SortableContext
                 items={columns.map((c) => c.id)}
