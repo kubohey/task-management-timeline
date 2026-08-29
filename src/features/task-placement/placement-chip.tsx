@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { NoteRichCellValue, SubtaskListCellValue } from "@/features/phase-table/types";
 import { cn } from "@/lib/utils";
+import { CHIP_LANE_GAP_PX, CHIP_LANE_HEIGHT_PX } from "./lanes";
 import { TaskMemoPopover } from "./task-memo-popover";
 import type { TaskPlacementRecord } from "./types";
 import { useDeletePlacement, useUpdatePlacement } from "./use-task-placement-mutations";
@@ -17,6 +18,10 @@ interface PlacementChipProps {
   dayIndex: number;
   /** 1日あたりのセル幅（px）。表示スケールによって変わる（docs/spec.md §2.4）。 */
   dayWidth: number;
+  /** 同じ日に他の予定と重なる場合の縦積み段番号（0始まり）。 */
+  lane: number;
+  /** このPhase行で使われているレーン数。1なら重なりなし＝従来どおり行いっぱいに表示。 */
+  laneCount: number;
   label: string;
   /** このPhaseが属するProjectの色。未設定の場合は既定のプライマリカラーを使う。 */
   color: string | null;
@@ -38,6 +43,8 @@ export function PlacementChip({
   phaseId,
   dayIndex,
   dayWidth,
+  lane,
+  laneCount,
   label,
   color,
   noteColumnId,
@@ -123,13 +130,22 @@ export function PlacementChip({
         <TooltipTrigger asChild>
           <div
             className={cn(
-              "group absolute top-0.5 bottom-0.5 flex items-center overflow-hidden rounded px-1.5 text-[11px]",
+              "group absolute flex items-center overflow-hidden rounded px-1.5 text-[11px]",
+              // 重なりがない（laneCount===1）ときは従来どおり行いっぱいに表示。
+              // 同じ日に複数タスクがある（laneCount>=2）ときは自分のレーン分だけの高さで縦積みする。
+              laneCount <= 1 && "top-0.5 bottom-0.5",
               color ? "text-foreground" : "bg-primary text-primary-foreground",
             )}
             style={{
               left: previewDayIndex * dayWidth,
               width: previewSpanDays * dayWidth,
               backgroundColor: color ?? undefined,
+              ...(laneCount > 1
+                ? {
+                    top: 2 + lane * (CHIP_LANE_HEIGHT_PX + CHIP_LANE_GAP_PX),
+                    height: CHIP_LANE_HEIGHT_PX,
+                  }
+                : undefined),
             }}
           >
             <div

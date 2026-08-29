@@ -16,6 +16,7 @@ import type {
 import { getDayBgColorClass } from "@/features/timeline/date-utils";
 import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { cn } from "@/lib/utils";
+import { assignLanes, CHIP_LANE_GAP_PX, CHIP_LANE_HEIGHT_PX } from "./lanes";
 import { PlacementChip } from "./placement-chip";
 import { useCreatePlacementWithNewRow } from "./use-task-placement-mutations";
 import { useTaskPlacements } from "./use-task-placements";
@@ -127,9 +128,16 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
     () => Object.fromEntries(rows.map((r) => [r.row.id, r])),
     [rows],
   );
+  // 同じ日に複数タスクが登録された場合に縦積みで表示するためのレーン割り当て
+  // （docs/spec.md §2.2・§2.3、1日1タスクの制約を撤廃）。
+  const { laneById, laneCount } = useMemo(() => assignLanes(placements), [placements]);
+  // 1レーンのみ（重複なし）のときは従来どおり行いっぱいにチップを表示する。
+  // 2レーン以上のときだけ行の高さをレーン数に合わせて広げる。
+  const minHeight =
+    laneCount > 1 ? laneCount * CHIP_LANE_HEIGHT_PX + (laneCount - 1) * CHIP_LANE_GAP_PX + 4 : undefined;
 
   return (
-    <div className="relative flex">
+    <div className="relative flex" style={minHeight ? { minHeight } : undefined}>
       {leadingWidth > 0 && <div className="shrink-0" style={{ width: leadingWidth }} />}
       {days.slice(startIndex, endIndex + 1).map((day) => (
         <DayCell
@@ -163,6 +171,8 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
             phaseId={phaseId}
             dayIndex={dayIndex}
             dayWidth={dayWidth}
+            lane={laneById[placement.id] ?? 0}
+            laneCount={laneCount}
             label={label}
             color={chipColor}
             noteColumnId={noteColumnId}
