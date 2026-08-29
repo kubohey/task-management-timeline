@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import * as api from "./api";
+import type { RoadmapColumnRecord } from "./types";
 
 function useInvalidateColumns() {
   const queryClient = useQueryClient();
@@ -18,12 +19,40 @@ export function useCreateRoadmapColumn() {
   return useMutation({ mutationFn: api.insertRoadmapColumn, onSuccess: () => invalidate() });
 }
 
+/**
+ * 列（幅・ラベル・サブ列数）の更新。楽観的更新なし＋onSuccessでの無効化だけだと、
+ * 幅ドラッグ確定時にサーバー応答が返るまでの間キャッシュ上は古いwidthのままになり、
+ * ドラッグ完了直後に一瞬（回線が遅いともっと長く）元の幅へ戻って見えた
+ * （ユーザー報告：「引っ張ったら元の位置に戻ってしまう」）。useReorderPhasesと同じ
+ * 楽観的更新パターンで、確定と同時にキャッシュ側も即座に書き換える。
+ */
 export function useUpdateRoadmapColumn() {
-  const invalidate = useInvalidateColumns();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (vars: { id: string; patch: api.RoadmapColumnPatch }) =>
       api.updateRoadmapColumn(vars.id, vars.patch),
-    onSuccess: () => invalidate(),
+    onMutate: async (vars) => {
+      const queryKey: QueryKey = ["roadmapColumns"];
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<RoadmapColumnRecord[]>(queryKey);
+      if (previous) {
+        queryClient.setQueryData(
+          queryKey,
+          previous.map((column) =>
+            column.id === vars.id ? { ...column, ...vars.patch } : column,
+          ),
+        );
+      }
+      return { previous, queryKey };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["roadmapColumns"] });
+    },
   });
 }
 
