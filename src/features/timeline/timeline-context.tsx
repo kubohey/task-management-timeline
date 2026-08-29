@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { observeElementOffset, useVirtualizer } from "@tanstack/react-virtual";
 import { isToday } from "date-fns";
 import { useUiStore } from "@/store/ui-store";
 import { DAY_SCALE_WIDTH_PX, DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
@@ -61,12 +61,29 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
   const days = useMemo(() => getTimelineDays(scale, anchorDate), [scale, anchorDate]);
   const dayWidth = scale === "day" ? DAY_SCALE_WIDTH_PX : DAY_WIDTH_PX;
 
+  // スクロール位置（scrollLeft）は実際の画面ピクセル（zoom適用後）で動くが、
+  // 仮想化（年表示）のestimateSize/オフセット計算はzoom前の論理ピクセル基準。
+  // このズレを補正しないと、zoomが100%以外のときにTanStack Virtualが
+  // 「今どの日付範囲が画面内か」を誤計算し、実際は表示領域内のはずの日付が
+  // 仮想化で描画対象から外れてカレンダーが空白になる不具合があった
+  // （ユーザー報告：「ガントチャートで90％以下のズーム率にするとカレンダーが
+  // 表示されない」、年表示のときのみ発生）。zoomは動的に変わるため、購読時に
+  // 固定値を閉じ込めないようrefで最新値を参照する（observeElementOffsetは
+  // スクロール要素が変わらない限り初回しか再購読されない仕組みのため）。
+  const ganttZoomPercent = useUiStore((s) => s.ganttZoomPercent);
+  const zoomFactorRef = useRef(ganttZoomPercent / 100);
+  zoomFactorRef.current = ganttZoomPercent / 100;
+
   const virtualizer = useVirtualizer({
     count: days.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => dayWidth,
     horizontal: true,
     overscan: 14,
+    observeElementOffset: (instance, cb) =>
+      observeElementOffset(instance, (offset, isScrolling) => {
+        cb(offset / zoomFactorRef.current, isScrolling);
+      }),
   });
 
   const totalWidth = days.length * dayWidth;
@@ -116,13 +133,6 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
   const scrollToTodaySignal = useUiStore((s) => s.scrollToTodaySignal);
   const daysRef = useRef(days);
   daysRef.current = days;
-  // scrollLeftは実際の画面ピクセル（zoom適用後）で動くが、dayWidth/SIDEBAR_WIDTH_PXは
-  // zoom前の論理ピクセルのため、計算にはzoom倍率を掛ける必要がある。zoomの変更だけでは
-  // 再スクロールしたくない（ズーム操作のたびに今日へ引き戻されると使いづらい）ため、
-  // daysRefと同様にrefで最新値だけ参照し、依存配列には含めない。
-  const ganttZoomPercent = useUiStore((s) => s.ganttZoomPercent);
-  const zoomRef = useRef(ganttZoomPercent);
-  zoomRef.current = ganttZoomPercent;
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -133,7 +143,11 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
     if (todayIndex === -1) {
       return;
     }
-    const zoomFactor = zoomRef.current / 100;
+    // scrollLeftは実際の画面ピクセル（zoom適用後）で動くが、dayWidth/SIDEBAR_WIDTH_PXは
+    // zoom前の論理ピクセルのため、計算にはzoom倍率を掛ける必要がある。zoomの変更だけでは
+    // 再スクロールしたくない（ズーム操作のたびに今日へ引き戻されると使いづらい）ため、
+    // zoomFactorRefで最新値だけ参照し、依存配列には含めない（上の仮想化オフセット補正と共用）。
+    const zoomFactor = zoomFactorRef.current;
     const visibleCalendarWidth = container.clientWidth - SIDEBAR_WIDTH_PX * zoomFactor;
     if (visibleCalendarWidth <= 0) {
       return;
