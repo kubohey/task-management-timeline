@@ -11,11 +11,14 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { Maximize2Icon, TableIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { PhaseTableDialog } from "@/features/phase-table/phase-table-dialog";
 import { PhaseTablePanel } from "@/features/phase-table/phase-table-panel";
+import { TABLE_ROW_SORTABLE_PREFIX } from "@/features/phase-table/phase-table";
+import { useReorderRows } from "@/features/phase-table/use-phase-table-mutations";
 import { usePhaseTableData } from "@/features/phase-table/use-phase-table-data";
 import { PhaseTimelineCells } from "@/features/task-placement/phase-timeline-cells";
 import { useCreatePlacement } from "@/features/task-placement/use-task-placement-mutations";
@@ -39,6 +42,7 @@ interface PhaseRowProps {
  * Phase行：名前編集、status付与、削除。
  * タスク表はカレンダーと並べて見えるインライン展開、または単体ダイアログの2通りで開ける。
  * インライン表示の表からタイムラインの日付セルへ行をドラッグ登録できる（docs/spec.md §2.2）。
+ * 表内の行同士もドラッグで並び替えられる（PhaseTable側のSortableTableRow参照）。
  */
 export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowProps) {
   const [editing, setEditing] = useState(false);
@@ -51,26 +55,55 @@ export function PhaseRow({ phase, depth, labelWidth, projectColor }: PhaseRowPro
   const { columns, rows, isLoading, isError } = usePhaseTableData(phase.id, true);
 
   const createPlacement = useCreatePlacement();
+  const reorderRows = useReorderRows();
   const { totalWidth } = useTimelineDays();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [draggingTaskName, setDraggingTaskName] = useState<string | null>(null);
 
+  // このDndContextは2種類のドラッグを扱う：
+  // ①表の行のグリップ（`row:${rowId}`）→カレンダー日付セル（`day:...`）で予定登録
+  // ②表の行の並び替えグリップ（`${TABLE_ROW_SORTABLE_PREFIX}${rowId}`）同士で行の順序入れ替え
+  // idの接頭辞で判別する。DragOverlayは①のときだけ表示する。
   const handleDragStart = (event: DragStartEvent) => {
-    setDraggingTaskName((event.active.data.current?.taskName as string | undefined) || "(無題のタスク)");
+    const id = event.active.id;
+    if (typeof id === "string" && id.startsWith("row:")) {
+      setDraggingTaskName((event.active.data.current?.taskName as string | undefined) || "(無題のタスク)");
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setDraggingTaskName(null);
+    const activeId = event.active.id;
     const overId = event.over?.id;
-    if (typeof overId !== "string" || !overId.startsWith("day:")) {
+    if (typeof activeId !== "string" || typeof overId !== "string") {
       return;
     }
-    const [, , date] = overId.split(":");
-    const rowId = event.active.data.current?.rowId as string | undefined;
-    if (!rowId || !date) {
+
+    if (activeId.startsWith("row:") && overId.startsWith("day:")) {
+      const [, , date] = overId.split(":");
+      const rowId = event.active.data.current?.rowId as string | undefined;
+      if (!rowId || !date) {
+        return;
+      }
+      createPlacement.mutate({ sourceRowId: rowId, date, phaseId: phase.id });
       return;
     }
-    createPlacement.mutate({ sourceRowId: rowId, date, phaseId: phase.id });
+
+    if (
+      activeId.startsWith(TABLE_ROW_SORTABLE_PREFIX) &&
+      overId.startsWith(TABLE_ROW_SORTABLE_PREFIX) &&
+      activeId !== overId
+    ) {
+      const activeRowId = activeId.slice(TABLE_ROW_SORTABLE_PREFIX.length);
+      const overRowId = overId.slice(TABLE_ROW_SORTABLE_PREFIX.length);
+      const oldIndex = rows.findIndex((r) => r.row.id === activeRowId);
+      const newIndex = rows.findIndex((r) => r.row.id === overRowId);
+      if (oldIndex === -1 || newIndex === -1) {
+        return;
+      }
+      const reordered = arrayMove(rows, oldIndex, newIndex);
+      reorderRows.mutate({ phaseId: phase.id, orderedRowIds: reordered.map((r) => r.row.id) });
+    }
   };
 
   return (

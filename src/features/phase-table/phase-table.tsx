@@ -1,8 +1,15 @@
 "use client";
 
 import { flexRender } from "@tanstack/react-table";
-import { getCoreRowModel, useLegacyTable, type LegacyColumnDef } from "@tanstack/react-table/legacy";
-import { Trash2Icon } from "lucide-react";
+import {
+  getCoreRowModel,
+  useLegacyTable,
+  type LegacyColumnDef,
+  type LegacyRow,
+} from "@tanstack/react-table/legacy";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVerticalIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DraggableRowHandle } from "@/features/task-placement/draggable-row-handle";
@@ -37,10 +44,18 @@ interface PhaseTableProps {
   draggable?: boolean;
 }
 
+const REORDER_COLUMN_ID = "__reorder";
 const ACTIONS_COLUMN_ID = "__actions";
 const ADD_COLUMN_ID = "__add_column";
 /** デフォルト4列のkey。この列は削除ボタンを出さない。 */
 const DEFAULT_COLUMN_KEYS = new Set(["checkbox", "task_name", "note", "subtasks"]);
+
+/**
+ * 行並び替え用のdnd-kit sortable id接頭辞。カレンダー登録用ドラッグ
+ * （DraggableRowHandleの`row:${rowId}`）とidの名前空間が衝突しないよう分ける。
+ * phase-row.tsxのDndContextでこの接頭辞を見て並び替えドロップを判別する。
+ */
+export const TABLE_ROW_SORTABLE_PREFIX = "tablerow:";
 
 /**
  * Phase内タスク表の本体。TanStack Table（getCoreRowModelのみ）で描画する。
@@ -55,6 +70,14 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
 
   const columnDefs: LegacyColumnDef<RowWithCells>[] = [
+    {
+      id: REORDER_COLUMN_ID,
+      header: "",
+      size: 28,
+      enableResizing: false,
+      // 実際の描画（ドラッグつまみ）はSortableTableRowで行う。ここは列幅確保のためのプレースホルダー。
+      cell: () => null,
+    },
     ...columns.map(
       (column): LegacyColumnDef<RowWithCells> => ({
         id: column.id,
@@ -179,6 +202,7 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
       }
     },
   });
+  const bodyRows = table.getRowModel().rows;
 
   return (
     <Table>
@@ -209,24 +233,68 @@ export function PhaseTable({ phaseId, columns, rows, draggable = false }: PhaseT
         ))}
       </TableHeader>
       <TableBody>
-        {table.getRowModel().rows.length === 0 ? (
+        {bodyRows.length === 0 ? (
           <TableRow>
             <TableCell colSpan={columnDefs.length} className="text-center text-muted-foreground">
               行がありません。「+ 行」から追加してください。
             </TableCell>
           </TableRow>
         ) : (
-          table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id} className="whitespace-normal align-top">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))
+          <SortableContext
+            items={bodyRows.map((row) => `${TABLE_ROW_SORTABLE_PREFIX}${row.id}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            {bodyRows.map((row) => (
+              <SortableTableRow key={row.id} row={row} />
+            ))}
+          </SortableContext>
         )}
       </TableBody>
     </Table>
+  );
+}
+
+/**
+ * 並び替え可能な1行。ドラッグ中はdnd-kitのtransformで見た目だけ他の行を押しのけて動き、
+ * ドロップ確定後にphase-row.tsx側のDndContextがsort_order更新を行う
+ * （PhaseTableは既存のカレンダー登録用DndContextの中で使われる前提のため、
+ * 自前のDndContextは持たずSortableContextのみで参加する）。
+ */
+function SortableTableRow({ row }: { row: LegacyRow<RowWithCells> }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `${TABLE_ROW_SORTABLE_PREFIX}${row.id}`,
+  });
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        position: "relative",
+        zIndex: isDragging ? 1 : undefined,
+        opacity: isDragging ? 0.5 : undefined,
+      }}
+    >
+      {row.getVisibleCells().map((cell) =>
+        cell.column.id === REORDER_COLUMN_ID ? (
+          <TableCell key={cell.id} className="align-top">
+            <button
+              type="button"
+              className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+              title="ドラッグして並び替え"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVerticalIcon className="size-3.5" />
+            </button>
+          </TableCell>
+        ) : (
+          <TableCell key={cell.id} className="whitespace-normal align-top">
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ),
+      )}
+    </TableRow>
   );
 }

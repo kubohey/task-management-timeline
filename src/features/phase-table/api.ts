@@ -142,6 +142,21 @@ export async function deleteTableRow(id: string) {
   if (error) throw error;
 }
 
+/**
+ * 行をドラッグで並び替えた後、新しい並び順どおりにsort_orderを振り直す。
+ * 行数分の個別updateを並列実行する（1テーブルあたりの行数は多くない想定のため）。
+ */
+export async function reorderTableRows(input: { orderedRowIds: string[] }) {
+  const supabase = createClient();
+  const results = await Promise.all(
+    input.orderedRowIds.map((id, index) =>
+      supabase.from("table_rows").update({ sort_order: index }).eq("id", id),
+    ),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+}
+
 // ============================================================
 // セル編集
 // ============================================================
