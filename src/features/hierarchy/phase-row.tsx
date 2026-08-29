@@ -24,6 +24,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InlineEditableText } from "@/features/shared/inline-editable-text";
 import { PhaseTableDialog } from "@/features/phase-table/phase-table-dialog";
 import { PhaseTablePanel } from "@/features/phase-table/phase-table-panel";
@@ -168,6 +169,22 @@ export function PhaseRow({
       <div>
         {/* 行の幅を明示的に指定する理由はgroup-row.tsxのコメント参照。 */}
         <div className="flex items-stretch" style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}>
+          {/* タスク表はカレンダーの日付列に埋め込む（ドキュメントの流れに乗って下の
+              Phase行を押し下げる）のではなく、オーバーレイとして浮かせて表示する
+              （ユーザー提供の修正案画像「表は、カレンダーに埋め込む形式ではなく、
+              プロジェクトの表示と同様に、カレンダーの横に固定して配置してほしい」
+              「私が求めているのはおそらく、オーバーレイです」）。
+              以前はposition: stickyかつheight:0の要素の中にposition: absoluteを
+              重ねる自前実装だったが、横スクロールしてからだと表がどこにも表示され
+              なくなる不具合があった（sticky要素の高さが0だとブラウザがスクロール後の
+              固定位置を正しく計算できないため。年表示は横スクロール量が大きいため
+              症状が必ず出ていた：ユーザー報告「年単位の時に、表が表示されない」）。
+              このアプリの他の浮遊UI（ColorPicker・日付セル直接登録・ロードマップの
+              タスク選択など）と同じくRadix Popover（Floating UI）に置き換えることで、
+              スクロール位置に関わらず正しく追従する。PopoverAnchorをサイドバーセル
+              全体に付け、トリガー（⊞ボタン）とは別に位置合わせの基準にする。 */}
+          <Popover open={tableOpen} onOpenChange={setTableOpen}>
+          <PopoverAnchor asChild>
           <div
             className="sticky left-0 z-10 flex shrink-0 items-center gap-2 border border-transparent bg-background px-2 py-1.5 hover:border-border"
             style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
@@ -234,19 +251,20 @@ export function PhaseRow({
               >
                 ✏️
               </Button>
-              <Button
-                type="button"
-                variant={tableOpen ? "secondary" : "ghost"}
-                size="icon-xs"
-                title={
-                  tableOpen
-                    ? "タスク表を閉じる（カレンダーと並べて表示）"
-                    : "タスク表を開く（カレンダーと並べて表示）"
-                }
-                onClick={() => setTableOpen((v) => !v)}
-              >
-                <TableIcon />
-              </Button>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant={tableOpen ? "secondary" : "ghost"}
+                  size="icon-xs"
+                  title={
+                    tableOpen
+                      ? "タスク表を閉じる（カレンダーと並べて表示）"
+                      : "タスク表を開く（カレンダーと並べて表示）"
+                  }
+                >
+                  <TableIcon />
+                </Button>
+              </PopoverTrigger>
               <Button
                 type="button"
                 variant="ghost"
@@ -271,6 +289,23 @@ export function PhaseRow({
               </Button>
             </div>
           </div>
+          </PopoverAnchor>
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            className="w-auto max-w-none rounded-md border bg-background p-0 shadow-lg"
+            style={{ width: SIDEBAR_WIDTH_PX }}
+          >
+            <PhaseTablePanel
+              phaseId={phase.id}
+              columns={columns}
+              rows={rows}
+              isLoading={isLoading}
+              isError={isError}
+            />
+          </PopoverContent>
+          </Popover>
           <PhaseTimelineCells
             phaseId={phase.id}
             columns={columns}
@@ -278,31 +313,6 @@ export function PhaseRow({
             chipColor={projectColor}
           />
         </div>
-        {tableOpen && (
-          // タスク表はカレンダーの日付列に埋め込む（ドキュメントの流れに乗って下の
-          // Phase行を押し下げる）のではなく、オーバーレイとして浮かせて表示する
-          // （ユーザー提供の修正案画像「表は、カレンダーに埋め込む形式ではなく、
-          // プロジェクトの表示と同様に、カレンダーの横に固定して配置してほしい」
-          // 「私が求めているのはおそらく、オーバーレイです」）。
-          // 高さ0のsticky要素（横スクロール追従はこれまでどおり維持）の中に、
-          // position: absoluteの中身を重ねることで、横スクロールには追従しつつ
-          // 縦方向のドキュメントフローには一切影響を与えない（下のPhase行の位置が
-          // 動かない）浮遊パネルにしている。
-          <div className="sticky left-0 z-30 h-0 overflow-visible">
-            <div
-              className="absolute top-0 left-0 rounded-md border bg-background shadow-lg"
-              style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
-            >
-              <PhaseTablePanel
-                phaseId={phase.id}
-                columns={columns}
-                rows={rows}
-                isLoading={isLoading}
-                isError={isError}
-              />
-            </div>
-          </div>
-        )}
         <PhaseTableDialog
           phaseId={phase.id}
           phaseName={phase.name}
