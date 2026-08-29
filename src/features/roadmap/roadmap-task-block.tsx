@@ -23,9 +23,10 @@ type DragHandle = "start" | "end" | "move";
 
 /**
  * ロードマップの週セルに埋め込まれた1タスクブロック。
- * 上下端をドラッグして期間（週数）を伸縮でき（docs/spec.md §2.6）、左上の
- * 移動ハンドル（MoveIcon）をドラッグすると期間はそのまま別の週へ移動できる
- * （ユーザー要望：「セルをドラッグしてタスクを入れ替えられる機能」）。
+ * 上下端をドラッグして期間（週数）を伸縮でき（docs/spec.md §2.6）、右上（削除
+ * ボタンの下）の移動ハンドル（MoveIcon）をドラッグすると期間はそのまま別の週へ
+ * 移動できる（ユーザー要望：「セルをドラッグしてタスクを入れ替えられる機能」。
+ * 当初は左上に置いていたが文字（テキストエリア）に被るとのフィードバックで右上へ移動）。
  * テキストは直接編集できる（編集内容はPhase表・カレンダー側には反映されない独立コピー）。
  * PlacementChip（メインのガントチャート、日単位・横方向）と同じ考え方の縦方向版。
  */
@@ -123,8 +124,31 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
           opacityだけで見せ隠しする。ColorPickerのPopoverはポータル表示され
           group（このブロック）の外にDOM上存在するため、displayで消してしまうと
           ポインタがポップオーバーへ移動した瞬間にトリガーごと消えて再表示が
-          繰り返され、位置計算が暴れて開けなくなる（ユーザー報告の表示ブレ）。 */}
-      <div className="absolute top-0.5 left-0.5 z-10 flex opacity-0 group-hover:opacity-100">
+          繰り返され、位置計算が暴れて開けなくなる（ユーザー報告の表示ブレ）。
+          移動ハンドルは文字（テキストエリア）に被らないよう、削除ボタンの
+          真下に縦に並べて右上隅にまとめる。 */}
+      <div className="absolute top-0.5 right-0.5 z-10 flex flex-col items-end gap-0.5 opacity-0 group-hover:opacity-100">
+        <div className="flex items-center gap-0.5 rounded bg-background/70">
+          {task.source_type === "manual" && (
+            <ColorPicker
+              color={task.color}
+              onChange={(nextColor) => updateTask.mutate({ id: task.id, patch: { color: nextColor } })}
+            />
+          )}
+          <button
+            type="button"
+            className="rounded p-1 hover:bg-background"
+            title="削除"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm("このタスクブロックを削除しますか？")) {
+                deleteTask.mutate(task.id);
+              }
+            }}
+          >
+            <Trash2Icon className="size-3" />
+          </button>
+        </div>
         <button
           type="button"
           className="cursor-grab touch-none rounded bg-background/70 p-1 hover:bg-background active:cursor-grabbing"
@@ -132,27 +156,6 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
           onPointerDown={startDrag("move")}
         >
           <MoveIcon className="size-3" />
-        </button>
-      </div>
-      <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 rounded bg-background/70 opacity-0 group-hover:opacity-100">
-        {task.source_type === "manual" && (
-          <ColorPicker
-            color={task.color}
-            onChange={(nextColor) => updateTask.mutate({ id: task.id, patch: { color: nextColor } })}
-          />
-        )}
-        <button
-          type="button"
-          className="rounded p-1 hover:bg-background"
-          title="削除"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm("このタスクブロックを削除しますか？")) {
-              deleteTask.mutate(task.id);
-            }
-          }}
-        >
-          <Trash2Icon className="size-3" />
         </button>
       </div>
       <textarea
