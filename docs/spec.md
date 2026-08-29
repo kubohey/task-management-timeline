@@ -374,3 +374,4 @@ roadmap_tasks (id, column_id, source_type[project|phase|manual], source_project_
 | 2026-08-29 | ユーザー要望「チェックボックスの位置を、ドラッグボタンの下に配置して」により、タスクブロックの複数選択チェックボックスを左上→右上（移動ハンドルの下）へ移動 |
 | 2026-08-29 | ユーザー報告「セルの幅を変えるときに、下のセルが付随せず、コンマ何秒後かに幅が変わる。Excelみたいに同時に動くようにして」により、列幅ドラッグ中のライブ値をRoadmapColumnHeader（見出し）とRoadmapColumnStrip（週セル・タスク列）の共通の親（RoadmapView）へ持ち上げ、両者が同じ幅を参照するよう変更 |
 | 2026-08-29 | ユーザー報告「引っ張ったら元の位置に戻ってしまう」により、直前の列幅ドラッグ同期修正の副作用を修正。`useUpdateRoadmapColumn`に楽観的更新（`onMutate`でキャッシュを即時書き換え、`onError`でロールバック）を追加し、ドラッグ確定直後にDBからの応答が返るまでの間だけ幅が古い値へ一瞬戻って見える不具合を解消（`useReorderPhases`と同じパターン）。あわせて、列見出しのProject名ラベルを中央揃えに変更 |
+| 2026-08-29 | ユーザー要望「画面のズーム率を毎回100%にするのではなく、前回のズーム率のまま表示して欲しい」により、`ganttZoomPercent`/`roadmapZoomPercent`のみzustandの`persist`ミドルウェアでブラウザのlocalStorageへ永続化（他のUI一時状態は対象外）。SSRとの不一致を避けるためstore側は`skipHydration: true`にし、`Providers`のマウント後に`useUiStore.persist.rehydrate()`で読み込む |

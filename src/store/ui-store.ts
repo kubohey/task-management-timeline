@@ -1,5 +1,6 @@
 import { startOfMonth } from "date-fns";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export type TimelineScale = "day" | "month" | "year";
 export type PhaseSortMode = "manual" | "status";
@@ -68,43 +69,64 @@ interface UiState {
 /**
  * UIの一時状態のみを保持するストア（永続データはSupabase側で管理）。
  * 折りたたみ状態などPhase 1以降で必要になる項目はここに追加していく。
+ *
+ * 画面全体の拡大縮小率（ganttZoomPercent/roadmapZoomPercent）のみ、ブラウザの
+ * localStorageへ永続化する（ユーザー要望：「毎回100%にするのではなく、前回の
+ * ズーム率のまま表示して欲しい」）。他の項目（タイムラインの基準日・選択状態など）は
+ * 画面を開くたびにリセットされるべき一時状態なので対象外（partializeで絞る）。
+ * SSR時にlocalStorageへ触れて壊れないよう`skipHydration: true`にし、実際の
+ * 読み込みはマウント後（`Providers`内）に`useUiStore.persist.rehydrate()`で行う。
  */
-export const useUiStore = create<UiState>((set) => ({
-  timelineScale: "month",
-  isFullscreen: false,
-  phaseSortMode: "manual",
-  hiddenPhaseStatuses: [],
-  timelineAnchorDate: startOfMonth(new Date()),
-  scrollToTodaySignal: 0,
-  dailyNoteDate: null,
-  dailyNoteWidth: DAILY_NOTE_DEFAULT_WIDTH_PX,
-  ganttZoomPercent: 100,
-  roadmapZoomPercent: 100,
-  selectedRoadmapTaskIds: [],
-  setTimelineScale: (timelineScale) => set({ timelineScale }),
-  setFullscreen: (isFullscreen) => set({ isFullscreen }),
-  setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
-  togglePhaseStatusFilter: (key) =>
-    set((state) => ({
-      hiddenPhaseStatuses: state.hiddenPhaseStatuses.includes(key)
-        ? state.hiddenPhaseStatuses.filter((k) => k !== key)
-        : [...state.hiddenPhaseStatuses, key],
-    })),
-  setTimelineAnchorDate: (timelineAnchorDate) => set({ timelineAnchorDate }),
-  requestScrollToToday: () => set((state) => ({ scrollToTodaySignal: state.scrollToTodaySignal + 1 })),
-  openDailyNote: (date) => set({ dailyNoteDate: date }),
-  closeDailyNote: () => set({ dailyNoteDate: null }),
-  setDailyNoteWidth: (width) =>
-    set({
-      dailyNoteWidth: Math.min(DAILY_NOTE_MAX_WIDTH_PX, Math.max(DAILY_NOTE_MIN_WIDTH_PX, width)),
+export const useUiStore = create<UiState>()(
+  persist(
+    (set) => ({
+      timelineScale: "month",
+      isFullscreen: false,
+      phaseSortMode: "manual",
+      hiddenPhaseStatuses: [],
+      timelineAnchorDate: startOfMonth(new Date()),
+      scrollToTodaySignal: 0,
+      dailyNoteDate: null,
+      dailyNoteWidth: DAILY_NOTE_DEFAULT_WIDTH_PX,
+      ganttZoomPercent: 100,
+      roadmapZoomPercent: 100,
+      selectedRoadmapTaskIds: [],
+      setTimelineScale: (timelineScale) => set({ timelineScale }),
+      setFullscreen: (isFullscreen) => set({ isFullscreen }),
+      setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
+      togglePhaseStatusFilter: (key) =>
+        set((state) => ({
+          hiddenPhaseStatuses: state.hiddenPhaseStatuses.includes(key)
+            ? state.hiddenPhaseStatuses.filter((k) => k !== key)
+            : [...state.hiddenPhaseStatuses, key],
+        })),
+      setTimelineAnchorDate: (timelineAnchorDate) => set({ timelineAnchorDate }),
+      requestScrollToToday: () =>
+        set((state) => ({ scrollToTodaySignal: state.scrollToTodaySignal + 1 })),
+      openDailyNote: (date) => set({ dailyNoteDate: date }),
+      closeDailyNote: () => set({ dailyNoteDate: null }),
+      setDailyNoteWidth: (width) =>
+        set({
+          dailyNoteWidth: Math.min(DAILY_NOTE_MAX_WIDTH_PX, Math.max(DAILY_NOTE_MIN_WIDTH_PX, width)),
+        }),
+      setGanttZoomPercent: (value) => set({ ganttZoomPercent: clampZoom(value) }),
+      setRoadmapZoomPercent: (value) => set({ roadmapZoomPercent: clampZoom(value) }),
+      toggleSelectedRoadmapTask: (id) =>
+        set((state) => ({
+          selectedRoadmapTaskIds: state.selectedRoadmapTaskIds.includes(id)
+            ? state.selectedRoadmapTaskIds.filter((taskId) => taskId !== id)
+            : [...state.selectedRoadmapTaskIds, id],
+        })),
+      clearSelectedRoadmapTasks: () => set({ selectedRoadmapTaskIds: [] }),
     }),
-  setGanttZoomPercent: (value) => set({ ganttZoomPercent: clampZoom(value) }),
-  setRoadmapZoomPercent: (value) => set({ roadmapZoomPercent: clampZoom(value) }),
-  toggleSelectedRoadmapTask: (id) =>
-    set((state) => ({
-      selectedRoadmapTaskIds: state.selectedRoadmapTaskIds.includes(id)
-        ? state.selectedRoadmapTaskIds.filter((taskId) => taskId !== id)
-        : [...state.selectedRoadmapTaskIds, id],
-    })),
-  clearSelectedRoadmapTasks: () => set({ selectedRoadmapTaskIds: [] }),
-}));
+    {
+      name: "timeline-ui-zoom",
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
+      partialize: (state) => ({
+        ganttZoomPercent: state.ganttZoomPercent,
+        roadmapZoomPercent: state.roadmapZoomPercent,
+      }),
+    },
+  ),
+);
