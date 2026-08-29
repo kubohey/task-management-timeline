@@ -96,6 +96,19 @@ tags: [spec, task-management-timeline]
   - 土曜日 → 青
   - 日曜日・祝日 → 赤（祝日判定は `holiday-jp` を使用）
 
+### 2.5 デイリータスクノート
+
+- タイムライン上部の日付ヘッダーをクリックすると、右サイドバーとして「その日のノート」が開く
+- サイドバー幅はウィンドウ幅と同様、左端をドラッグして自由に調整可能
+- ノートは2部構成
+  1. 自動生成されるその日のタスク一覧：`プロジェクト名 → Phase名 → タスク名（チェックボックス）` の階層で表示
+     - チェックボックスはPhase表の1列目（チェックボックス列）のセルそのものを参照・更新する
+       （実体を複製しない方針、§5データモデル参照）ため、表側でチェックしてもここに反映される
+  2. 自由記述のメモ欄（Tiptapリッチテキスト。太字・箇条書き・チェックリスト・ハイライトが可能）
+- 「Obsidianへコピー」ボタンで1・2をまとめてMarkdown化し、`- [ ]` 形式のチェックボックスの
+  ままクリップボードにコピーできる（Phase内タスク表のコピーと異なり、表セル内埋め込みではない
+  ため `・` への変換は行わない）
+
 ---
 
 ## 3. 認証・アクセス制御
@@ -111,7 +124,7 @@ tags: [spec, task-management-timeline]
 
 - 複数デバイスから同時に開いた場合、他デバイスでの変更が即座に画面へ反映される
 - 実装方式：Supabase Realtime（Postgres Changes）を主要テーブルに対して購読
-  - 対象：`groups` / `projects` / `phases` / `phase_statuses` / `table_columns` / `table_rows` / `table_cells` / `task_placements`
+  - 対象：`groups` / `projects` / `phases` / `phase_statuses` / `table_columns` / `table_rows` / `table_cells` / `task_placements` / `daily_notes`
 - クライアント側は React Query 等でのキャッシュ管理 ＋ Realtimeイベント受信時にキャッシュを更新する構成
 - 競合解決方針：**Last-Write-Wins**（CRDT/OTのような操作変換は実装しない）
   - 個人が複数デバイスを使い分ける利用形態を前提とし、同時編集の即時反映により「気づかず上書きされる」リスクを下げることで十分と判断
@@ -149,6 +162,10 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
   └─ Phase表の行をカレンダーへドラッグした「予定」。
      タスク名・備考・サブタスクはsource_row_id経由でtable_cellsを直接参照し、
      実体を複製しない
+
+daily_notes (id, user_id, date, content: Tiptap JSON)
+  └─ デイリータスクノート（§2.5）の自由記述欄。unique(user_id, date)で日付ごとに1件。
+     その日のタスク一覧自体はここに保存せず、task_placementsから毎回組み立てる
 ```
 
 **RLS方針**：`groups.user_id = auth.uid()` を起点に、`projects/phases/table_rows/table_cells/task_placements` は親子関係（`group_id → project_id → phase_id → row_id`）を辿って同一ユーザーのデータのみアクセス可能とする。各テーブルに個別の `user_id` は持たせない。
@@ -249,6 +266,7 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 - [x] 列自体の追加（Phase 6で実装）
 - [x] パフォーマンス最適化（年表示の横方向仮想化、Phase 7で実装）
 - [x] タイムラインに登録済みのタスクをドラッグで引き伸ばして複数日にまたがる予定にする（Phase 6で実装）
+- [x] デイリータスクノート（日付クリックで開く右サイドバー、§2.5で実装）
 
 ---
 
@@ -283,3 +301,5 @@ task_placements (id, source_row_id, start_date, end_date, view_scale)
 | 2026-08-28 | ユーザー要望により、Phaseのstatusを固定3値（active/always/next）から、ユーザーが任意の数だけ追加・削除・名前変更・色変更・並び替えできる可変な一覧に変更。新設した`phase_statuses`テーブル（ユーザーごと）への参照として`phases.status_id`を追加し、旧`status`列（text + check制約）は廃止。ツールバーに「status管理」ダイアログを新設（DBマイグレーション`supabase/migrations/0004_phase_statuses.sql`はユーザー側で適用が必要、既存データは自動移行される） |
 | 2026-08-28 | MVP範囲のチェックリストが実態とずれていたため修正：ログイン・RLS・Realtime同期はPhase 0（基盤構築）の時点で実装済みだったが未チェックのままだったので反映。Phase 0〜7が完了し、残るはPhase 8（デプロイ・安定化：Vercelデプロイ、簡易テスト）のみの状態 |
 | 2026-08-28 | Phase 8（デプロイ・安定化）完了。GitHubリポジトリを作成しVercelと連携、本番デプロイに成功（未ログイン時の`/login`リダイレクト・ログイン後のタイムライン表示を本番URLで確認済み）。Playwrightによる最小限のE2Eスモークテスト（`e2e/`）を追加：認証ガード（未ログイン時のリダイレクト・ログイン画面表示）は常時実行、ログイン後の表示確認は`.env.local`に`E2E_EMAIL`/`E2E_PASSWORD`を設定した場合のみ実行（実データを変更する操作は行わないため安全）。`npm run test:e2e`で実行可能 |
+| 2026-08-29 | ユーザー要望により、Phase内タスク表の行並び替え（ドラッグ＆ドロップ、`@dnd-kit/sortable`）を追加。あわせて、その並び替えドラッグ中にページ全体の横スクロールコンテナが巻き込まれカレンダーが横スクロールしてしまう不具合を修正（`autoScroll.threshold.x`をドラッグ種別に応じて切り替え） |
+| 2026-08-29 | デイリータスクノート（§2.5）を追加。タイムライン日付ヘッダーのクリックで開く右サイドバーに、その日にカレンダー登録されたタスクを`プロジェクト名 → Phase名 → タスク名`の階層でチェックボックス表示（Phase表のチェックボックス列と同一セルを参照）しつつ、自由記述のTiptapメモ欄も併設。サイドバー幅はドラッグで可変。「Obsidianへコピー」で`- [ ]`形式のまま1枚のMarkdownとしてコピーできる。新設`daily_notes`テーブル（DBマイグレーション`supabase/migrations/0005_daily_notes.sql`はユーザー側で適用が必要） |

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { format } from "date-fns";
+import { useUiStore } from "@/store/ui-store";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_WIDTH_PX } from "./constants";
 import { getDayBgColorClass, getDayTextColorClass, getWeekdayLabel } from "./date-utils";
@@ -39,6 +40,8 @@ function buildMonthGroups(days: Date[], startIndex: number, endIndex: number): M
 export function TimelineHeader() {
   const { days, startIndex, endIndex, leadingWidth, trailingWidth, totalWidth, dayWidth } =
     useTimelineDays();
+  const openDailyNote = useUiStore((s) => s.openDailyNote);
+  const dailyNoteDate = useUiStore((s) => s.dailyNoteDate);
   const monthGroups = useMemo(
     () => buildMonthGroups(days, startIndex, endIndex),
     [days, startIndex, endIndex],
@@ -75,20 +78,27 @@ export function TimelineHeader() {
         />
         <div className="flex">
           {leadingWidth > 0 && <div className="shrink-0" style={{ width: leadingWidth }} />}
-          {days.slice(startIndex, endIndex + 1).map((day) => (
-            <div
-              key={day.toISOString()}
-              className={cn(
-                "flex shrink-0 flex-col items-center border-r py-1 text-xs",
-                getDayTextColorClass(day),
-                getDayBgColorClass(day),
-              )}
-              style={{ width: dayWidth }}
-            >
-              <span>{day.getDate()}</span>
-              <span>{getWeekdayLabel(day)}</span>
-            </div>
-          ))}
+          {days.slice(startIndex, endIndex + 1).map((day) => {
+            const iso = format(day, "yyyy-MM-dd");
+            return (
+              <button
+                key={day.toISOString()}
+                type="button"
+                title="クリックしてこの日のノートを開く"
+                onClick={() => openDailyNote(iso)}
+                className={cn(
+                  "flex shrink-0 flex-col items-center border-r py-1 text-xs hover:brightness-95",
+                  getDayTextColorClass(day),
+                  getDayBgColorClass(day),
+                  dailyNoteDate === iso && "ring-1 ring-inset ring-primary",
+                )}
+                style={{ width: dayWidth }}
+              >
+                <span>{day.getDate()}</span>
+                <span>{getWeekdayLabel(day)}</span>
+              </button>
+            );
+          })}
           {trailingWidth > 0 && <div className="shrink-0" style={{ width: trailingWidth }} />}
         </div>
       </div>

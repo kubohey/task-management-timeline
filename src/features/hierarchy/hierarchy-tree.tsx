@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Maximize2Icon, Minimize2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DailyNoteSidebar } from "@/features/daily-note/daily-note-sidebar";
 import { InlineCreateButton } from "@/features/shared/inline-create-button";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
 import { toggleFullscreen, useFullscreenSync } from "@/features/shared/use-fullscreen";
@@ -63,6 +64,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
   const phaseSortMode = useUiStore((s) => s.phaseSortMode);
   const setPhaseSortMode = useUiStore((s) => s.setPhaseSortMode);
   const isFullscreen = useUiStore((s) => s.isFullscreen);
+  const dailyNoteDate = useUiStore((s) => s.dailyNoteDate);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -98,67 +100,69 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
   return (
     <div
       ref={containerRef}
-      className={cn(
-        "flex flex-1 flex-col overflow-hidden",
-        isFullscreen && "h-screen w-screen bg-background",
-      )}
+      className={cn("flex flex-1 overflow-hidden", isFullscreen && "h-screen w-screen bg-background")}
     >
-      <PhaseStatusesProvider statuses={phaseStatuses}>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
-          <InlineCreateButton
-            label="Group"
-            onCreate={(name) =>
-              createGroup.mutate({ userId, name, parentGroupId: null, sortOrder: tree.length })
-            }
-          />
-          <div className="flex flex-wrap items-center gap-4">
-            <TimelineToolbar />
-            <div className="flex items-center gap-1 text-sm">
-              <span className="text-muted-foreground">Phase並び替え:</span>
+      {/* デイリータスクノート（右サイドバー）を並べて表示できるよう、本体は縦積みのまま
+          横並びの左ペインとして切り出す（min-w-0でサイドバー分だけ幅が縮むようにする）。 */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <PhaseStatusesProvider statuses={phaseStatuses}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
+            <InlineCreateButton
+              label="Group"
+              onCreate={(name) =>
+                createGroup.mutate({ userId, name, parentGroupId: null, sortOrder: tree.length })
+              }
+            />
+            <div className="flex flex-wrap items-center gap-4">
+              <TimelineToolbar />
+              <div className="flex items-center gap-1 text-sm">
+                <span className="text-muted-foreground">Phase並び替え:</span>
+                <Button
+                  type="button"
+                  variant={phaseSortMode === "manual" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setPhaseSortMode("manual")}
+                >
+                  追加順
+                </Button>
+                <Button
+                  type="button"
+                  variant={phaseSortMode === "status" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setPhaseSortMode("status")}
+                >
+                  status順
+                </Button>
+              </div>
+              <PhaseStatusFilter />
+              <PhaseStatusManager userId={userId} />
               <Button
                 type="button"
-                variant={phaseSortMode === "manual" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setPhaseSortMode("manual")}
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => toggleFullscreen(containerRef)}
+                title={isFullscreen ? "全画面表示を終了" : "全画面表示"}
               >
-                追加順
-              </Button>
-              <Button
-                type="button"
-                variant={phaseSortMode === "status" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setPhaseSortMode("status")}
-              >
-                status順
+                {isFullscreen ? <Minimize2Icon /> : <Maximize2Icon />}
               </Button>
             </div>
-            <PhaseStatusFilter />
-            <PhaseStatusManager userId={userId} />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => toggleFullscreen(containerRef)}
-              title={isFullscreen ? "全画面表示を終了" : "全画面表示"}
-            >
-              {isFullscreen ? <Minimize2Icon /> : <Maximize2Icon />}
-            </Button>
           </div>
-        </div>
 
-        <TimelineDaysProvider scrollContainerRef={scrollContainerRef}>
-          <div ref={scrollContainerRef} className="flex-1 overflow-auto">
-            <TimelineHeader />
-            {tree.length === 0 ? (
-              <p className="p-4 text-sm text-muted-foreground">
-                Groupがまだありません。「+ Group」から作成してください。
-              </p>
-            ) : (
-              <GroupsColumn tree={tree} rootLabelWidth={rootLabelWidth} userId={userId} />
-            )}
-          </div>
-        </TimelineDaysProvider>
-      </PhaseStatusesProvider>
+          <TimelineDaysProvider scrollContainerRef={scrollContainerRef}>
+            <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+              <TimelineHeader />
+              {tree.length === 0 ? (
+                <p className="p-4 text-sm text-muted-foreground">
+                  Groupがまだありません。「+ Group」から作成してください。
+                </p>
+              ) : (
+                <GroupsColumn tree={tree} rootLabelWidth={rootLabelWidth} userId={userId} />
+              )}
+            </div>
+          </TimelineDaysProvider>
+        </PhaseStatusesProvider>
+      </div>
+      {dailyNoteDate && <DailyNoteSidebar userId={userId} date={dailyNoteDate} />}
     </div>
   );
 }

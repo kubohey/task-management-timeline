@@ -9,6 +9,11 @@ export type PhaseSortMode = "manual" | "status";
  */
 export type PhaseStatusFilterKey = string;
 
+/** デイリータスクノートのサイドバー幅（px）。docs/spec.md §2.5参照。 */
+export const DAILY_NOTE_DEFAULT_WIDTH_PX = 360;
+export const DAILY_NOTE_MIN_WIDTH_PX = 280;
+export const DAILY_NOTE_MAX_WIDTH_PX = 720;
+
 interface UiState {
   timelineScale: TimelineScale;
   isFullscreen: boolean;
@@ -24,12 +29,19 @@ interface UiState {
    * 通常のprev/next移動では発火させず、初回表示・スケール切替・「今日」ボタンでのみ発火する。
    */
   scrollToTodaySignal: number;
+  /** デイリータスクノート（右サイドバー）で開いている日付（"yyyy-MM-dd"）。nullで非表示。 */
+  dailyNoteDate: string | null;
+  /** デイリータスクノートのサイドバー幅（px）。ウィンドウ幅調整と同様、ドラッグで可変。 */
+  dailyNoteWidth: number;
   setTimelineScale: (scale: TimelineScale) => void;
   setFullscreen: (value: boolean) => void;
   setPhaseSortMode: (mode: PhaseSortMode) => void;
   togglePhaseStatusFilter: (key: PhaseStatusFilterKey) => void;
   setTimelineAnchorDate: (date: Date) => void;
   requestScrollToToday: () => void;
+  openDailyNote: (date: string) => void;
+  closeDailyNote: () => void;
+  setDailyNoteWidth: (width: number) => void;
 }
 
 /**
@@ -43,6 +55,8 @@ export const useUiStore = create<UiState>((set) => ({
   hiddenPhaseStatuses: [],
   timelineAnchorDate: startOfMonth(new Date()),
   scrollToTodaySignal: 0,
+  dailyNoteDate: null,
+  dailyNoteWidth: DAILY_NOTE_DEFAULT_WIDTH_PX,
   setTimelineScale: (timelineScale) => set({ timelineScale }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
   setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
@@ -54,4 +68,10 @@ export const useUiStore = create<UiState>((set) => ({
     })),
   setTimelineAnchorDate: (timelineAnchorDate) => set({ timelineAnchorDate }),
   requestScrollToToday: () => set((state) => ({ scrollToTodaySignal: state.scrollToTodaySignal + 1 })),
+  openDailyNote: (date) => set({ dailyNoteDate: date }),
+  closeDailyNote: () => set({ dailyNoteDate: null }),
+  setDailyNoteWidth: (width) =>
+    set({
+      dailyNoteWidth: Math.min(DAILY_NOTE_MAX_WIDTH_PX, Math.max(DAILY_NOTE_MIN_WIDTH_PX, width)),
+    }),
 }));
