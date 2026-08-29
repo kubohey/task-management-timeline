@@ -174,6 +174,7 @@ export function RoadmapView({ userId }: RoadmapViewProps) {
               <RoadmapColumnHeader
                 key={column.id}
                 column={column}
+                tasks={tasksByColumn.get(column.id) ?? []}
                 width={getColumnWidth(column.id, column.width)}
                 onLiveWidthChange={(width) => setLiveColumnWidth(column.id, width)}
               />
