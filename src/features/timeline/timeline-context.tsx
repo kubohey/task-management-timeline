@@ -116,6 +116,13 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
   const scrollToTodaySignal = useUiStore((s) => s.scrollToTodaySignal);
   const daysRef = useRef(days);
   daysRef.current = days;
+  // scrollLeftは実際の画面ピクセル（zoom適用後）で動くが、dayWidth/SIDEBAR_WIDTH_PXは
+  // zoom前の論理ピクセルのため、計算にはzoom倍率を掛ける必要がある。zoomの変更だけでは
+  // 再スクロールしたくない（ズーム操作のたびに今日へ引き戻されると使いづらい）ため、
+  // daysRefと同様にrefで最新値だけ参照し、依存配列には含めない。
+  const ganttZoomPercent = useUiStore((s) => s.ganttZoomPercent);
+  const zoomRef = useRef(ganttZoomPercent);
+  zoomRef.current = ganttZoomPercent;
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -126,11 +133,12 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
     if (todayIndex === -1) {
       return;
     }
-    const visibleCalendarWidth = container.clientWidth - SIDEBAR_WIDTH_PX;
+    const zoomFactor = zoomRef.current / 100;
+    const visibleCalendarWidth = container.clientWidth - SIDEBAR_WIDTH_PX * zoomFactor;
     if (visibleCalendarWidth <= 0) {
       return;
     }
-    const todayCenterPos = todayIndex * dayWidth + dayWidth / 2;
+    const todayCenterPos = (todayIndex * dayWidth + dayWidth / 2) * zoomFactor;
     const targetScrollLeft = todayCenterPos - visibleCalendarWidth / 2;
     const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
     container.scrollLeft = Math.min(Math.max(0, targetScrollLeft), maxScrollLeft);

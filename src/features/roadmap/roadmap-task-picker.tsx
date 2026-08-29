@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import type { PhaseRecord, ProjectRecord } from "@/features/hierarchy/types";
 import { cn } from "@/lib/utils";
 import type { RoadmapTaskSourceType } from "./types";
 
 export interface RoadmapTaskSelection {
   sourceType: RoadmapTaskSourceType;
-  sourceProjectId: string;
+  sourceProjectId: string | null;
   sourcePhaseId: string | null;
   label: string;
 }
@@ -31,9 +33,10 @@ interface RoadmapTaskPickerProps {
 }
 
 /**
- * 週セルへタスクを埋め込む際の、既存Project/PhaseのSearchable一覧。
- * ロードマップの列追加（Projectのみ）とは異なり、こちらはPhaseも選べる
- * （docs/spec.md §2.6「週セルにプロジェクトまたはPhaseの埋め込みを行い」）。
+ * 週セルへタスクを埋め込む際のUI。既存Project/PhaseのSearchable一覧に加え、
+ * 直接テキストを書き込んで手動ブロックを作ることもできる
+ * （docs/spec.md §2.6「週セルへの直接書き込み」）。
+ * ロードマップの列追加（Projectのみ）とは異なり、こちらはPhaseも選べる。
  */
 export function RoadmapTaskPicker({
   projects,
@@ -42,6 +45,16 @@ export function RoadmapTaskPicker({
   onSelect,
 }: RoadmapTaskPickerProps) {
   const [query, setQuery] = useState("");
+  const [manualText, setManualText] = useState("");
+
+  const submitManual = () => {
+    const trimmed = manualText.trim();
+    if (!trimmed) {
+      return;
+    }
+    onSelect({ sourceType: "manual", sourceProjectId: null, sourcePhaseId: null, label: trimmed });
+    setManualText("");
+  };
 
   const entries: PickerEntry[] = projects.flatMap((project) => [
     {
@@ -81,8 +94,29 @@ export function RoadmapTaskPicker({
 
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1">
+        <Input
+          autoFocus
+          value={manualText}
+          placeholder="直接入力して追加"
+          onChange={(e) => setManualText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitManual();
+            }
+          }}
+        />
+        <Button type="button" size="sm" disabled={!manualText.trim()} onClick={submitManual}>
+          追加
+        </Button>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Separator className="flex-1" />
+        または既存から選択
+        <Separator className="flex-1" />
+      </div>
       <Input
-        autoFocus
         value={query}
         placeholder="Project / Phaseを検索"
         onChange={(e) => setQuery(e.target.value)}

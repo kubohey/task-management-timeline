@@ -14,6 +14,13 @@ export const DAILY_NOTE_DEFAULT_WIDTH_PX = 360;
 export const DAILY_NOTE_MIN_WIDTH_PX = 280;
 export const DAILY_NOTE_MAX_WIDTH_PX = 720;
 
+/** 画面全体の拡大縮小表示（ガントチャート・ロードマップ共通）。CSSのzoomプロパティで実現する。 */
+export const ZOOM_MIN_PERCENT = 50;
+export const ZOOM_MAX_PERCENT = 150;
+export const ZOOM_STEP_PERCENT = 10;
+const clampZoom = (value: number) =>
+  Math.min(ZOOM_MAX_PERCENT, Math.max(ZOOM_MIN_PERCENT, value));
+
 interface UiState {
   timelineScale: TimelineScale;
   isFullscreen: boolean;
@@ -33,6 +40,10 @@ interface UiState {
   dailyNoteDate: string | null;
   /** デイリータスクノートのサイドバー幅（px）。ウィンドウ幅調整と同様、ドラッグで可変。 */
   dailyNoteWidth: number;
+  /** ガントチャート画面の拡大縮小率（%、100が等倍）。 */
+  ganttZoomPercent: number;
+  /** ロードマップ画面の拡大縮小率（%、100が等倍）。 */
+  roadmapZoomPercent: number;
   setTimelineScale: (scale: TimelineScale) => void;
   setFullscreen: (value: boolean) => void;
   setPhaseSortMode: (mode: PhaseSortMode) => void;
@@ -42,6 +53,8 @@ interface UiState {
   openDailyNote: (date: string) => void;
   closeDailyNote: () => void;
   setDailyNoteWidth: (width: number) => void;
+  setGanttZoomPercent: (value: number) => void;
+  setRoadmapZoomPercent: (value: number) => void;
 }
 
 /**
@@ -57,6 +70,8 @@ export const useUiStore = create<UiState>((set) => ({
   scrollToTodaySignal: 0,
   dailyNoteDate: null,
   dailyNoteWidth: DAILY_NOTE_DEFAULT_WIDTH_PX,
+  ganttZoomPercent: 100,
+  roadmapZoomPercent: 100,
   setTimelineScale: (timelineScale) => set({ timelineScale }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
   setPhaseSortMode: (phaseSortMode) => set({ phaseSortMode }),
@@ -74,4 +89,6 @@ export const useUiStore = create<UiState>((set) => ({
     set({
       dailyNoteWidth: Math.min(DAILY_NOTE_MAX_WIDTH_PX, Math.max(DAILY_NOTE_MIN_WIDTH_PX, width)),
     }),
+  setGanttZoomPercent: (value) => set({ ganttZoomPercent: clampZoom(value) }),
+  setRoadmapZoomPercent: (value) => set({ roadmapZoomPercent: clampZoom(value) }),
 }));

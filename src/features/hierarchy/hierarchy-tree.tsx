@@ -7,6 +7,7 @@ import { DailyNoteSidebar } from "@/features/daily-note/daily-note-sidebar";
 import { InlineCreateButton } from "@/features/shared/inline-create-button";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
 import { toggleFullscreen, useFullscreenSync } from "@/features/shared/use-fullscreen";
+import { ZoomControl } from "@/features/shared/zoom-control";
 import { SIDEBAR_WIDTH_PX } from "@/features/timeline/constants";
 import { TimelineDaysProvider, useTimelineDays } from "@/features/timeline/timeline-context";
 import { TimelineHeader } from "@/features/timeline/timeline-header";
@@ -65,6 +66,8 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
   const setPhaseSortMode = useUiStore((s) => s.setPhaseSortMode);
   const isFullscreen = useUiStore((s) => s.isFullscreen);
   const dailyNoteDate = useUiStore((s) => s.dailyNoteDate);
+  const ganttZoomPercent = useUiStore((s) => s.ganttZoomPercent);
+  const setGanttZoomPercent = useUiStore((s) => s.setGanttZoomPercent);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -115,6 +118,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
             />
             <div className="flex flex-wrap items-center gap-4">
               <TimelineToolbar />
+              <ZoomControl value={ganttZoomPercent} onChange={setGanttZoomPercent} />
               <div className="flex items-center gap-1 text-sm">
                 <span className="text-muted-foreground">Phase並び替え:</span>
                 <Button
@@ -150,14 +154,19 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
 
           <TimelineDaysProvider scrollContainerRef={scrollContainerRef}>
             <div ref={scrollContainerRef} className="flex-1 overflow-auto">
-              <TimelineHeader />
-              {tree.length === 0 ? (
-                <p className="p-4 text-sm text-muted-foreground">
-                  Groupがまだありません。「+ Group」から作成してください。
-                </p>
-              ) : (
-                <GroupsColumn tree={tree} rootLabelWidth={rootLabelWidth} userId={userId} />
-              )}
+              {/* 画面全体の拡大縮小（ZoomControl）はCSSのzoomプロパティで実現する。
+                  日付ヘッダーの位置固定（sticky）はスクロールコンテナ基準で効くため、
+                  このラッパーを挟んでも壊れない。 */}
+              <div style={{ zoom: ganttZoomPercent / 100 }}>
+                <TimelineHeader />
+                {tree.length === 0 ? (
+                  <p className="p-4 text-sm text-muted-foreground">
+                    Groupがまだありません。「+ Group」から作成してください。
+                  </p>
+                ) : (
+                  <GroupsColumn tree={tree} rootLabelWidth={rootLabelWidth} userId={userId} />
+                )}
+              </div>
             </div>
           </TimelineDaysProvider>
         </PhaseStatusesProvider>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { addWeeks, format, parseISO } from "date-fns";
 import { Trash2Icon } from "lucide-react";
+import { ColorPicker } from "@/features/shared/color-picker";
 import { cn } from "@/lib/utils";
 import { useDeleteRoadmapTask, useUpdateRoadmapTask } from "./use-roadmap-mutations";
 import { diffWeeks, WEEK_ROW_HEIGHT_PX } from "./week-utils";
@@ -105,19 +106,27 @@ export function RoadmapTaskBlock({ task, startIndex, lane, laneCount, color }: R
         className="absolute top-0 left-0 z-10 h-1.5 w-full cursor-ns-resize opacity-0 group-hover:opacity-100 group-hover:bg-foreground/10"
         onPointerDown={startResize("start")}
       />
-      <button
-        type="button"
-        className="absolute top-0.5 right-0.5 z-10 hidden rounded bg-background/70 p-0.5 hover:bg-background group-hover:block"
-        title="削除"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (confirm("このタスクブロックを削除しますか？")) {
-            deleteTask.mutate(task.id);
-          }
-        }}
-      >
-        <Trash2Icon className="size-3" />
-      </button>
+      <div className="absolute top-0.5 right-0.5 z-10 hidden items-center gap-0.5 rounded bg-background/70 group-hover:flex">
+        {task.source_type === "manual" && (
+          <ColorPicker
+            color={task.color}
+            onChange={(nextColor) => updateTask.mutate({ id: task.id, patch: { color: nextColor } })}
+          />
+        )}
+        <button
+          type="button"
+          className="rounded p-1 hover:bg-background"
+          title="削除"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm("このタスクブロックを削除しますか？")) {
+              deleteTask.mutate(task.id);
+            }
+          }}
+        >
+          <Trash2Icon className="size-3" />
+        </button>
+      </div>
       <textarea
         key={task.label}
         defaultValue={task.label}
