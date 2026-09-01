@@ -110,12 +110,26 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <PhaseStatusesProvider statuses={phaseStatuses}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
-            <InlineCreateButton
-              label="Group"
-              onCreate={(name) =>
-                createGroup.mutate({ userId, name, parentGroupId: null, sortOrder: tree.length })
-              }
-            />
+            <div className="flex items-center gap-1">
+              <InlineCreateButton
+                label="Group"
+                onCreate={(name) =>
+                  createGroup.mutate({ userId, name, parentGroupId: null, sortOrder: tree.length })
+                }
+              />
+              {/* 右側（TimelineToolbarの日/月/年タブなど）の横幅を圧迫しないよう、
+                  +Groupの隣に置く（ユーザー報告：「ここに置けばカレンダー上部のタブを
+                  もう少し細く表示できそう」）。 */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => toggleFullscreen(containerRef)}
+                title={isFullscreen ? "全画面表示を終了" : "全画面表示"}
+              >
+                {isFullscreen ? <Minimize2Icon /> : <Maximize2Icon />}
+              </Button>
+            </div>
             <div className="flex flex-wrap items-center gap-4">
               <TimelineToolbar />
               <ZoomControl value={ganttZoomPercent} onChange={setGanttZoomPercent} />
@@ -140,15 +154,6 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
               </div>
               <PhaseStatusFilter />
               <PhaseStatusManager userId={userId} />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => toggleFullscreen(containerRef)}
-                title={isFullscreen ? "全画面表示を終了" : "全画面表示"}
-              >
-                {isFullscreen ? <Minimize2Icon /> : <Maximize2Icon />}
-              </Button>
             </div>
           </div>
 
