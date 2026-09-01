@@ -11,7 +11,7 @@ export default function LoginPage() {
           width={1448}
           height={1086}
           priority
-          className="mb-3 h-12 w-auto"
+          className="mb-3 h-24 w-auto"
         />
         <p className="mb-6 text-sm text-muted-foreground">
           個人利用のためのタスク管理ツールです。

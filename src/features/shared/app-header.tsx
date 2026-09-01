@@ -35,7 +35,7 @@ export function AppHeader({ email, logoutAction }: AppHeaderProps) {
           width={1448}
           height={1086}
           priority
-          className="h-9 w-auto"
+          className="h-16 w-auto"
         />
         <nav className="flex items-center gap-1">
           {TABS.map((tab) => (
