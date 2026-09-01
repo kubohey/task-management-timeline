@@ -48,7 +48,7 @@ export function TimelineHeader() {
     totalWidth,
     dayWidth,
     outsideDates,
-    outsideTaskNotes,
+    outsideContentNotes,
   } = useTimelineDays();
   const openDailyNote = useUiStore((s) => s.openDailyNote);
   const dailyNoteDate = useUiStore((s) => s.dailyNoteDate);
@@ -69,7 +69,7 @@ export function TimelineHeader() {
         leadingWidth={leadingWidth}
         trailingWidth={trailingWidth}
         dayWidth={dayWidth}
-        outsideTaskNotes={outsideTaskNotes}
+        outsideContentNotes={outsideContentNotes}
       />
       <div className="flex items-stretch border-b">
         <div

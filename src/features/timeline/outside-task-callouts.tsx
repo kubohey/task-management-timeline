@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { JSONContent } from "@tiptap/react";
 import { format } from "date-fns";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
-import type { OutsideTaskItem } from "@/features/daily-note/types";
+import { docToMarkdown } from "@/features/daily-note/obsidian-export";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_WIDTH_PX } from "./constants";
 import { getDayTextColorClass, getWeekdayLabel } from "./date-utils";
@@ -15,7 +16,33 @@ interface OutsideTaskCalloutsProps {
   leadingWidth: number;
   trailingWidth: number;
   dayWidth: number;
-  outsideTaskNotes: Map<string, OutsideTaskItem[]>;
+  outsideContentNotes: Map<string, JSONContent>;
+}
+
+interface PreviewLine {
+  text: string;
+  checked?: boolean;
+}
+
+/**
+ * outside専用メモ（Tiptap doc）を、吹き出しに収まる簡潔な行リストへ変換する。
+ * 既存のMarkdown変換（docToMarkdown）を再利用し、行頭の記法（`- `, `- [ ] `, `#`, `1. `等）
+ * だけ取り除いてプレーンな箇条書き表示にする（吹き出しは要約表示のため、太字等の装飾記法は
+ * そのまま残しても崩れないので変換しない）。
+ */
+function toPreviewLines(doc: JSONContent): PreviewLine[] {
+  return docToMarkdown(doc)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const taskMatch = line.match(/^-\s\[([ x])\]\s(.*)$/);
+      if (taskMatch) {
+        return { text: taskMatch[2], checked: taskMatch[1] === "x" };
+      }
+      const match = line.match(/^(?:-|\d+\.|#+)\s(.*)$/);
+      return { text: match ? match[1] : line };
+    });
 }
 
 /**
@@ -35,7 +62,7 @@ export function OutsideTaskCallouts({
   leadingWidth,
   trailingWidth,
   dayWidth,
-  outsideTaskNotes,
+  outsideContentNotes,
 }: OutsideTaskCalloutsProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -45,8 +72,12 @@ export function OutsideTaskCallouts({
 
   const entries = days.slice(startIndex, endIndex + 1).flatMap((day, i) => {
     const iso = format(day, "yyyy-MM-dd");
-    const tasks = outsideTaskNotes.get(iso);
-    return tasks && tasks.length > 0 ? [{ day, iso, tasks, column: i + 2 }] : [];
+    const content = outsideContentNotes.get(iso);
+    if (!content) {
+      return [];
+    }
+    const lines = toPreviewLines(content);
+    return lines.length > 0 ? [{ day, iso, lines, column: i + 2 }] : [];
   });
 
   if (entries.length === 0) {
@@ -62,7 +93,7 @@ export function OutsideTaskCallouts({
         gridTemplateColumns: `${SIDEBAR_WIDTH_PX + leadingWidth}px repeat(${columnCount}, ${dayWidth}px) ${trailingWidth}px`,
       }}
     >
-      {entries.map(({ day, iso, tasks, column }) => {
+      {entries.map(({ day, iso, lines, column }) => {
         const isCollapsed = collapsed[iso] ?? false;
         return (
           <div key={iso} className="flex flex-col items-center pt-2" style={{ gridColumn: column }}>
@@ -92,15 +123,15 @@ export function OutsideTaskCallouts({
               </div>
               {!isCollapsed && (
                 <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-foreground">
-                  {tasks.map((task) => (
+                  {lines.map((line, i) => (
                     <li
-                      key={task.id}
+                      key={i}
                       className={cn(
                         "break-words",
-                        task.checked && "text-muted-foreground line-through",
+                        line.checked && "text-muted-foreground line-through",
                       )}
                     >
-                      {task.text}
+                      {line.text}
                     </li>
                   ))}
                 </ul>

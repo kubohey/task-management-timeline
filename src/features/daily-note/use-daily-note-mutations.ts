@@ -3,7 +3,6 @@
 import type { JSONContent } from "@tiptap/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "./api";
-import type { OutsideTaskItem } from "./types";
 
 /**
  * ノート本文の保存（日付ごとに1件、autosave経由で呼ばれる）。
@@ -38,17 +37,18 @@ export function useSetDailyNoteTags() {
 }
 
 /**
- * outside専用タスク欄（本文とは別のjsonb配列）を保存する。カレンダーの日付ヘッダー上の
- * 吹き出しが参照する`["outsideTaskNotes"]`もあわせてinvalidateする。
+ * outside専用メモ欄（本文とは別のTiptap doc、autosave経由で呼ばれる）を保存する。
+ * カレンダーの日付ヘッダー上の吹き出しが参照する`["outsideContentNotes"]`もあわせて
+ * invalidateする。
  */
-export function useSetOutsideTasks() {
+export function useSaveOutsideNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { userId: string; date: string; tasks: OutsideTaskItem[] }) =>
-      api.setOutsideTasks(vars),
+    mutationFn: (vars: { userId: string; date: string; content: JSONContent }) =>
+      api.setOutsideContent(vars),
     onSuccess: (_data, vars) => {
       void queryClient.invalidateQueries({ queryKey: ["dailyNote", vars.date] });
-      void queryClient.invalidateQueries({ queryKey: ["outsideTaskNotes"] });
+      void queryClient.invalidateQueries({ queryKey: ["outsideContentNotes"] });
     },
   });
 }

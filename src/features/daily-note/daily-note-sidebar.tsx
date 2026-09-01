@@ -12,10 +12,9 @@ import { RichTextEditor } from "@/features/shared/rich-text-editor";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/ui-store";
 import { docToMarkdown } from "./obsidian-export";
-import { OutsideTaskList } from "./outside-task-list";
 import { OUTSIDE_TAG } from "./types";
 import { useDailyNoteData } from "./use-daily-note-data";
-import { useSaveDailyNote, useSetDailyNoteTags } from "./use-daily-note-mutations";
+import { useSaveDailyNote, useSaveOutsideNote, useSetDailyNoteTags } from "./use-daily-note-mutations";
 
 interface DailyNoteSidebarProps {
   userId: string;
@@ -29,14 +28,21 @@ interface DailyNoteSidebarProps {
  * （雛形挿入はtask-list-doc.ts）。保存後はPhase表と独立した本文になり、ここでの編集
  * （チェック・文言変更・削除等）はPhase表側に反映されない（docs/spec.md §2.5）。
  * Obsidianへ`- [ ]`形式のままコピペできる。
+ *
+ * outsideトグルON時は、このプロジェクト用メモに加えてoutside専用メモ（daily_notes.
+ * outside_content）が現れ、2つの自由記述欄が画面分割（上下）で並ぶ。形式・操作性は
+ * どちらも同じRichTextEditorで、保存先の列が異なるだけの完全に独立したメモ。1件以上
+ * 書かれた日は、カレンダーの日付ヘッダー上に折りたたみ可能な吹き出しでその内容を表示する
+ * （outsideについて.png参照、timeline/outside-task-callouts.tsx）。
  */
 export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
   const width = useUiStore((s) => s.dailyNoteWidth);
   const setWidth = useUiStore((s) => s.setDailyNoteWidth);
   const closeDailyNote = useUiStore((s) => s.closeDailyNote);
 
-  const { content, tags, outsideTasks, isLoading, isError } = useDailyNoteData(date, true);
+  const { content, tags, outsideContent, isLoading, isError } = useDailyNoteData(date, true);
   const saveNote = useSaveDailyNote();
+  const saveOutsideNote = useSaveOutsideNote();
   const setTags = useSetDailyNoteTags();
   const isOutsideDay = tags.includes(OUTSIDE_TAG);
 
@@ -123,21 +129,40 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
           />
         </div>
 
-        {isOutsideDay && (
-          <OutsideTaskList userId={userId} date={date} tasks={outsideTasks} disabled={isLoading} />
-        )}
-
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">読み込み中...</p>
+            <p className="p-3 text-sm text-muted-foreground">読み込み中...</p>
           ) : isError ? (
-            <p className="text-sm text-destructive">データの取得に失敗しました。</p>
+            <p className="p-3 text-sm text-destructive">データの取得に失敗しました。</p>
+          ) : isOutsideDay ? (
+            // outsideトグルON時は、プロジェクト用メモとoutside専用メモを画面分割（上下）で
+            // 並べる。両者は完全に独立した自由記述欄（RichTextEditor）で、形式・操作性は同じ。
+            <>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto border-b p-3">
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">プロジェクト</p>
+                <RichTextEditor
+                  toolbar
+                  value={content}
+                  onChange={(next) => saveNote.mutate({ userId, date, content: next })}
+                />
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">Outside</p>
+                <RichTextEditor
+                  toolbar
+                  value={outsideContent}
+                  onChange={(next) => saveOutsideNote.mutate({ userId, date, content: next })}
+                />
+              </div>
+            </>
           ) : (
-            <RichTextEditor
-              toolbar
-              value={content}
-              onChange={(next) => saveNote.mutate({ userId, date, content: next })}
-            />
+            <div className="flex-1 overflow-y-auto p-3">
+              <RichTextEditor
+                toolbar
+                value={content}
+                onChange={(next) => saveNote.mutate({ userId, date, content: next })}
+              />
+            </div>
           )}
         </div>
       </div>
