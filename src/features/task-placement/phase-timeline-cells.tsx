@@ -126,7 +126,8 @@ function DayCell({ id, date, className, phaseId, columns, sortOrder, dayWidth }:
  * docs/spec.md §2.2・§2.3
  */
 export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseTimelineCellsProps) {
-  const { days, startIndex, endIndex, leadingWidth, trailingWidth, dayWidth } = useTimelineDays();
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth, dayWidth, outsideDates } =
+    useTimelineDays();
   const { placements } = useTaskPlacements(phaseId);
 
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
@@ -152,7 +153,7 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
           key={day.toISOString()}
           id={`day:${phaseId}:${format(day, "yyyy-MM-dd")}`}
           date={day}
-          className={getDayBgColorClass(day)}
+          className={getDayBgColorClass(day, outsideDates.has(format(day, "yyyy-MM-dd")))}
           phaseId={phaseId}
           columns={columns}
           sortOrder={rows.length}

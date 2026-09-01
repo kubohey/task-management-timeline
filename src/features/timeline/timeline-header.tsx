@@ -38,7 +38,7 @@ function buildMonthGroups(days: Date[], startIndex: number, endIndex: number): M
  * 固定される（2軸固定、docs/spec.md §6）。
  */
 export function TimelineHeader() {
-  const { days, startIndex, endIndex, leadingWidth, trailingWidth, totalWidth, dayWidth } =
+  const { days, startIndex, endIndex, leadingWidth, trailingWidth, totalWidth, dayWidth, outsideDates } =
     useTimelineDays();
   const openDailyNote = useUiStore((s) => s.openDailyNote);
   const dailyNoteDate = useUiStore((s) => s.dailyNoteDate);
@@ -89,7 +89,7 @@ export function TimelineHeader() {
                 className={cn(
                   "flex shrink-0 flex-col items-center border-r py-1 text-xs hover:brightness-95",
                   getDayTextColorClass(day),
-                  getDayBgColorClass(day),
+                  getDayBgColorClass(day, outsideDates.has(iso)),
                   dailyNoteDate === iso && "ring-1 ring-inset ring-primary",
                 )}
                 style={{ width: dayWidth }}

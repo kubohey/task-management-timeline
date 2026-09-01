@@ -1,11 +1,18 @@
 import type { JSONContent } from "@tiptap/react";
 
+/**
+ * プロジェクト外の予定（旅行など、プロジェクトのタスクを進められない日）を表すタグ。
+ * ガントチャートはこのタグが付いた日の列を薄いグレーで塗りつぶす（date-utils.ts参照）。
+ */
+export const OUTSIDE_TAG = "outside" as const;
+
 /** daily_notesテーブル1件（ユーザー×日付で一意）。本文はTiptapのdoc構造。 */
 export interface DailyNoteRecord {
   id: string;
   user_id: string;
   date: string;
   content: JSONContent;
+  tags: string[];
   created_at: string;
   updated_at: string;
 }

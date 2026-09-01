@@ -43,6 +43,7 @@ export function useDailyNoteData(date: string, enabled: boolean) {
 
   return {
     content,
+    tags: noteQuery.data?.tags ?? [],
     isLoading: noteQuery.isLoading || (needsSeed && tasksQuery.isLoading),
     isError: noteQuery.isError || tasksQuery.isError,
   };

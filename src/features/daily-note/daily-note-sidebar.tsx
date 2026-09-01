@@ -5,13 +5,16 @@ import { format, parseISO } from "date-fns";
 import { ClipboardCopyIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { getDayTextColorClass, getWeekdayLabel } from "@/features/timeline/date-utils";
 import { RichTextEditor } from "@/features/shared/rich-text-editor";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/ui-store";
 import { docToMarkdown } from "./obsidian-export";
+import { OUTSIDE_TAG } from "./types";
 import { useDailyNoteData } from "./use-daily-note-data";
-import { useSaveDailyNote } from "./use-daily-note-mutations";
+import { useSaveDailyNote, useSetDailyNoteTags } from "./use-daily-note-mutations";
 
 interface DailyNoteSidebarProps {
   userId: string;
@@ -31,8 +34,17 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
   const setWidth = useUiStore((s) => s.setDailyNoteWidth);
   const closeDailyNote = useUiStore((s) => s.closeDailyNote);
 
-  const { content, isLoading, isError } = useDailyNoteData(date, true);
+  const { content, tags, isLoading, isError } = useDailyNoteData(date, true);
   const saveNote = useSaveDailyNote();
+  const setTags = useSetDailyNoteTags();
+  const isOutsideDay = tags.includes(OUTSIDE_TAG);
+
+  const toggleOutsideDay = (checked: boolean) => {
+    const nextTags = checked
+      ? [...tags, OUTSIDE_TAG]
+      : tags.filter((t) => t !== OUTSIDE_TAG);
+    setTags.mutate({ userId, date, tags: nextTags });
+  };
 
   const widthRef = useRef(width);
   useEffect(() => {
@@ -95,6 +107,19 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
               <XIcon />
             </Button>
           </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-b px-3 py-1.5">
+          <Label htmlFor="outside-day-toggle" className="text-xs text-muted-foreground">
+            プロジェクト外の予定（この日をガントチャートでグレー表示）
+          </Label>
+          <Switch
+            id="outside-day-toggle"
+            size="sm"
+            checked={isOutsideDay}
+            disabled={isLoading}
+            onCheckedChange={toggleOutsideDay}
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto p-3">

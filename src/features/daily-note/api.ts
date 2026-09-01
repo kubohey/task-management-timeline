@@ -1,7 +1,7 @@
 import type { JSONContent } from "@tiptap/react";
 import { emptyDoc } from "@/features/phase-table/types";
 import { createClient } from "@/lib/supabase/client";
-import type { DailyNoteRecord, DailyTaskProjectGroup } from "./types";
+import { OUTSIDE_TAG, type DailyNoteRecord, type DailyTaskProjectGroup } from "./types";
 
 // ============================================================
 // ノート本文（daily_notes）
@@ -33,6 +33,36 @@ export async function upsertDailyNote(input: {
       { onConflict: "user_id,date" },
     );
   if (error) throw error;
+}
+
+/**
+ * ノートのタグ一覧を保存する（本文とは独立して更新するため、upsertDailyNoteとは分ける）。
+ * contentを含めないので、既にノートが存在する場合はcontentを上書きしない。未作成の場合は
+ * DB側のデフォルト（空doc）でinsertされる。
+ */
+export async function setDailyNoteTags(input: { userId: string; date: string; tags: string[] }) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("daily_notes")
+    .upsert(
+      { user_id: input.userId, date: input.date, tags: input.tags },
+      { onConflict: "user_id,date" },
+    );
+  if (error) throw error;
+}
+
+/**
+ * 「outside」タグ（プロジェクト外の予定）が付いている日付一覧を取得する。
+ * ガントチャートの列を薄いグレーで塗りつぶす判定に使う（timeline-context.tsx参照）。
+ */
+export async function fetchOutsideDates(): Promise<string[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("daily_notes")
+    .select("date")
+    .contains("tags", [OUTSIDE_TAG]);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.date as string);
 }
 
 // ============================================================

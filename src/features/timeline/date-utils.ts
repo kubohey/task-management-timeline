@@ -63,12 +63,17 @@ export function getDayTextColorClass(date: Date): string {
 }
 
 /**
- * 日付セル背景色のTailwindクラス。今日＝明るい緑（半透明）、土曜=薄青、日曜・祝日=薄赤。
- * 今日は他の色分けより優先して目立たせる。
+ * 日付セル背景色のTailwindクラス。今日＝明るい緑（半透明）、outsideタグの日＝薄いグレー、
+ * 土曜=薄青、日曜・祝日=薄赤。優先度は 今日 > outsideタグ > 土日祝 の順（今日は他の色分けより
+ * 優先して目立たせる。outsideタグは「その日はプロジェクトのタスクを進められない」という
+ * 個別の予定なので、単なる曜日の色分けより優先する）。
  */
-export function getDayBgColorClass(date: Date): string {
+export function getDayBgColorClass(date: Date, isOutsideDay = false): string {
   if (isToday(date)) {
     return "bg-green-400/25";
+  }
+  if (isOutsideDay) {
+    return "bg-gray-300/60";
   }
   if (date.getDay() === 0 || isJapaneseHoliday(date)) {
     return "bg-red-50";

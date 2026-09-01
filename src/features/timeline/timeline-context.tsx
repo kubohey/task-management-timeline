@@ -11,6 +11,7 @@ import {
 } from "react";
 import { observeElementOffset, useVirtualizer } from "@tanstack/react-virtual";
 import { isToday } from "date-fns";
+import { useOutsideDates } from "@/features/daily-note/use-outside-dates";
 import { useUiStore } from "@/store/ui-store";
 import { DAY_SCALE_WIDTH_PX, DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
 import { getTimelineDays } from "./date-utils";
@@ -37,6 +38,11 @@ interface TimelineDaysContextValue {
    * 月/年表示より広い幅を使う（docs/spec.md §2.4）。
    */
   dayWidth: number;
+  /**
+   * 「outside」タグ（プロジェクト外の予定）が付いた日付（yyyy-MM-dd）の集合。
+   * この日はガントチャートの列を薄いグレーで塗りつぶす（date-utils.tsのgetDayBgColorClass参照）。
+   */
+  outsideDates: Set<string>;
 }
 
 const TimelineDaysContext = createContext<TimelineDaysContextValue | null>(null);
@@ -87,6 +93,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
   });
 
   const totalWidth = days.length * dayWidth;
+  const outsideDates = useOutsideDates();
 
   // virtualizerの戻り値はスクロールのたびに変わるためuseMemoでの恩恵は薄く、素直に毎レンダー計算する。
   let value: TimelineDaysContextValue;
@@ -99,6 +106,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
       trailingWidth: 0,
       totalWidth,
       dayWidth,
+      outsideDates,
     };
   } else {
     const virtualItems = virtualizer.getVirtualItems();
@@ -111,6 +119,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
         trailingWidth: totalWidth,
         totalWidth,
         dayWidth,
+        outsideDates,
       };
     } else {
       const first = virtualItems[0];
@@ -123,6 +132,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
         trailingWidth: totalWidth - last.end,
         totalWidth,
         dayWidth,
+        outsideDates,
       };
     }
   }

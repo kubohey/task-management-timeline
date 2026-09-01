@@ -19,3 +19,19 @@ export function useSaveDailyNote() {
       void queryClient.invalidateQueries({ queryKey: ["dailyNote", vars.date] }),
   });
 }
+
+/**
+ * ノートのタグ一覧（今のところ「outside」のみ）を保存する。ガントチャート側の
+ * 塗りつぶし判定に使う`["outsideDates"]`もあわせてinvalidateする。
+ */
+export function useSetDailyNoteTags() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { userId: string; date: string; tags: string[] }) =>
+      api.setDailyNoteTags(vars),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ["dailyNote", vars.date] });
+      void queryClient.invalidateQueries({ queryKey: ["outsideDates"] });
+    },
+  });
+}

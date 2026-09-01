@@ -1,4 +1,4 @@
-# Task Management Timeline
+<img src="./docs/assets/logo.png" alt="Task Management Timeline" width="600" />
 
 ガントチャートでタスクを管理するための個人用Webアプリ。仕様の詳細は [`docs/spec.md`](./docs/spec.md) を参照。
 
