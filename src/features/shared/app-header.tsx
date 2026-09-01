@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,14 @@ export function AppHeader({ email, logoutAction }: AppHeaderProps) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
       <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-lg font-semibold">Task Management Timeline</h1>
+        <Image
+          src="/logo.png"
+          alt="Task Management Timeline"
+          width={1448}
+          height={1086}
+          priority
+          className="h-9 w-auto"
+        />
         <nav className="flex items-center gap-1">
           {TABS.map((tab) => (
             <Link
