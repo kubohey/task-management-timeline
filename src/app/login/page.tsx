@@ -8,10 +8,10 @@ export default function LoginPage() {
         <Image
           src="/logo.png"
           alt="Task Management Timeline"
-          width={1448}
-          height={1086}
+          width={1297}
+          height={385}
           priority
-          className="mb-3 h-24 w-auto"
+          className="mb-3 h-20 w-auto"
         />
         <p className="mb-6 text-sm text-muted-foreground">
           個人利用のためのタスク管理ツールです。

@@ -32,10 +32,10 @@ export function AppHeader({ email, logoutAction }: AppHeaderProps) {
         <Image
           src="/logo.png"
           alt="Task Management Timeline"
-          width={1448}
-          height={1086}
+          width={1297}
+          height={385}
           priority
-          className="h-16 w-auto"
+          className="h-14 w-auto"
         />
         <nav className="flex items-center gap-1">
           {TABS.map((tab) => (
