@@ -111,7 +111,7 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
 
         <div className="flex items-center justify-end gap-2 border-b px-3 py-1.5">
           <Label htmlFor="outside-day-toggle" className="text-xs text-muted-foreground">
-            Outside project (shades this day gray on the Gantt chart)
+            Outside project
           </Label>
           <Switch
             id="outside-day-toggle"
