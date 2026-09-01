@@ -44,6 +44,7 @@ export function useDailyNoteData(date: string, enabled: boolean) {
   return {
     content,
     tags: noteQuery.data?.tags ?? [],
+    outsideTasks: noteQuery.data?.outside_tasks ?? [],
     isLoading: noteQuery.isLoading || (needsSeed && tasksQuery.isLoading),
     isError: noteQuery.isError || tasksQuery.isError,
   };

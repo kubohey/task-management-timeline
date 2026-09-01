@@ -1,7 +1,12 @@
 import type { JSONContent } from "@tiptap/react";
 import { emptyDoc } from "@/features/phase-table/types";
 import { createClient } from "@/lib/supabase/client";
-import { OUTSIDE_TAG, type DailyNoteRecord, type DailyTaskProjectGroup } from "./types";
+import {
+  OUTSIDE_TAG,
+  type DailyNoteRecord,
+  type DailyTaskProjectGroup,
+  type OutsideTaskItem,
+} from "./types";
 
 // ============================================================
 // ノート本文（daily_notes）
@@ -63,6 +68,46 @@ export async function fetchOutsideDates(): Promise<string[]> {
     .contains("tags", [OUTSIDE_TAG]);
   if (error) throw error;
   return (data ?? []).map((row) => row.date as string);
+}
+
+/**
+ * outside専用タスク欄（本文とは別のjsonb配列）を保存する。tagsと同じく本文を含めずに
+ * 更新するため、既にノートが存在する場合はcontentを上書きしない。
+ */
+export async function setOutsideTasks(input: {
+  userId: string;
+  date: string;
+  tasks: OutsideTaskItem[];
+}) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("daily_notes")
+    .upsert(
+      { user_id: input.userId, date: input.date, outside_tasks: input.tasks },
+      { onConflict: "user_id,date" },
+    );
+  if (error) throw error;
+}
+
+/**
+ * 「outside」タグが付いた日付のうち、専用タスク欄に1件以上項目があるものを取得する。
+ * カレンダーの日付ヘッダー上の吹き出し（outside-task-callouts.tsx）に使う。
+ */
+export async function fetchOutsideTaskNotes(): Promise<
+  { date: string; tasks: OutsideTaskItem[] }[]
+> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("daily_notes")
+    .select("date, outside_tasks")
+    .contains("tags", [OUTSIDE_TAG]);
+  if (error) throw error;
+  return (data ?? [])
+    .map((row) => ({
+      date: row.date as string,
+      tasks: (row.outside_tasks as OutsideTaskItem[] | null) ?? [],
+    }))
+    .filter((row) => row.tasks.length > 0);
 }
 
 // ============================================================

@@ -12,6 +12,7 @@ import { RichTextEditor } from "@/features/shared/rich-text-editor";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/ui-store";
 import { docToMarkdown } from "./obsidian-export";
+import { OutsideTaskList } from "./outside-task-list";
 import { OUTSIDE_TAG } from "./types";
 import { useDailyNoteData } from "./use-daily-note-data";
 import { useSaveDailyNote, useSetDailyNoteTags } from "./use-daily-note-mutations";
@@ -34,7 +35,7 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
   const setWidth = useUiStore((s) => s.setDailyNoteWidth);
   const closeDailyNote = useUiStore((s) => s.closeDailyNote);
 
-  const { content, tags, isLoading, isError } = useDailyNoteData(date, true);
+  const { content, tags, outsideTasks, isLoading, isError } = useDailyNoteData(date, true);
   const saveNote = useSaveDailyNote();
   const setTags = useSetDailyNoteTags();
   const isOutsideDay = tags.includes(OUTSIDE_TAG);
@@ -121,6 +122,10 @@ export function DailyNoteSidebar({ userId, date }: DailyNoteSidebarProps) {
             onCheckedChange={toggleOutsideDay}
           />
         </div>
+
+        {isOutsideDay && (
+          <OutsideTaskList userId={userId} date={date} tasks={outsideTasks} disabled={isLoading} />
+        )}
 
         <div className="flex-1 overflow-y-auto p-3">
           {isLoading ? (

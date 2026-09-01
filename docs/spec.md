@@ -115,6 +115,16 @@ tags: [spec, task-management-timeline]
 - 「Obsidianへコピー」ボタンで本文全体（挿入されたタスク一覧＋自由記述メモ）をMarkdown化し、
   `- [ ]` 形式のチェックボックスのままクリップボードにコピーできる（Phase内タスク表のコピーと
   異なり、表セル内埋め込みではないため `・` への変換は行わない）
+- **outsideタグ**：旅行など、プロジェクトのタスクを進められない日に付けるトグル
+  （`daily_notes.tags`に`"outside"`を追加）。ONの日はガントチャートの列を薄いグレーで
+  塗りつぶす
+  - トグル直下に、自由記述の本文とは別の**専用タスク欄**（チェックボックス付きリスト、
+    `daily_notes.outside_tasks`）が現れる。旅行の持ち物など、Phase表と無関係な個人的タスクを
+    ここに追加できる
+  - このタスク欄に1件以上項目がある日は、タイムライン上部の日付ヘッダーのその日の列の上に
+    折りたたみ可能な吹き出しが表示され、内容（チェック状態込み）をカレンダー上でひと目で
+    確認できる。吹き出しはクリックで個別に開閉でき、開閉状態はページを開いている間だけ保持
+    （リロードで既定の展開状態に戻る）
 
 ### 2.6 ロードマップタブ
 
@@ -393,3 +403,4 @@ roadmap_tasks (id, column_id, source_type[project|phase|manual], source_project_
 | 2026-08-29 | ユーザー要望「ロードマップのページで、各プロジェクトの列をドラッグして、並び替えられるようにしてほしい」により、`RoadmapColumnHeader`の見出し左端にドラッグつまみ（`GripVerticalIcon`）を追加し、`@dnd-kit/sortable`（`horizontalListSortingStrategy`）で列（Project）の並び替えができるようにした。DndContext・並び替え確定は`RoadmapView`側、Phaseの並び替え（`hierarchy/use-hierarchy-mutations.tsのuseReorderPhases`）と同じ楽観的更新パターンの`useReorderRoadmapColumns`（新設）で`sort_order`を振り直す。列見出しの`.map()`だけをDndContextで囲み、下の週セル・タスクストリップ側は列の並び順（`roadmapColumns`クエリのキャッシュ配列順）が変わることで結果的に追随する構成（ドラッグ中のライブプレビューは見出し行のみ） |
 | 2026-08-29 | ユーザー報告「プロジェクト検索欄ですが、検索候補がランダム表示になっているので、グループ-プロジェクト-Phaseの階層になるようにしてほしい」を修正。原因は、列追加・週セルのProject/Phase検索候補（`AddRoadmapColumnButton`・`RoadmapTaskPicker`）が`useHierarchyData`のフラットな`projects`配列をそのまま使っており、`projects.sort_order`はGroupをまたいだ並びまでは表さない（親ごとにローカルな値）ため、異なるGroup配下のProjectが混ざって見えていたこと。`hierarchy/build-tree.ts`に`flattenProjectsInHierarchyOrder`（新設）を追加し、`buildHierarchyTree`で組み立てたGroup→Subgroup→Project→Phaseの木を深さ優先で展開、サイドバーと同じ並び順にしたProject配列を`useRoadmapData`から返すようにした。ピッカー側のコード変更は不要（受け取る`projects`配列の並びが直ることで、既存の`flatMap`/`filter`ロジックがそのまま正しい順になる） |
 | 2026-08-29 | ユーザー報告「列をドラッグ時に、縦にスクロールしてしまう」を修正。列見出しはsticky topで画面上端付近にあるため、dnd-kitの既定のautoScroll（上下左右どの端に近づいても閾値20%でスクロール）のままだと、横方向へドラッグしているだけでポインタが上端に近いという理由だけで縦方向のオートスクロールも発火していた。列並び替え用DndContextの`autoScroll`を`{ threshold: { x: 0.2, y: 0 } }`にし、縦方向のオートスクロールを無効化（表内の行並び替え中に横方向を無効化しているphase-row.tsxのautoScrollと同じ考え方） |
+| 2026-09-02 | ユーザー要望「outsideをオンにするとoutside用のタスク欄を追加される。そして、outsideのタスクが追加された日は、カレンダーの日付上に吹き出しでoutsideのタスクが表示される。この吹き出しは、折りたたみ可能」（`outsideについて.png`にレイアウト参照あり）により、outsideタグ機能を拡張。(1) `daily_notes`に新カラム`outside_tasks`（jsonb配列、`supabase/migrations/0011_outside_tasks.sql`）を追加し、outsideトグルON時にのみ本文とは別の専用タスク欄（`OutsideTaskList`、チェックボックス付きリスト＋末尾の追加欄、Phase表のサブタスク欄と同じ形式）をトグル直下に表示するようにした。(2) この欄に1件以上項目がある日付を`fetchOutsideTaskNotes`で取得し（`useOutsideTaskNotes`、`timeline-context.tsx`経由で配布）、日付ヘッダー（`TimelineHeader`）の月ラベル行の上に「吹き出しレーン」を追加。CSS Gridの列幅を日付セルと完全一致させることで各吹き出しを対象日の列の真上に配置し、下端の短い縦線（テール）でその日を指し示す。吹き出しはクリックで個別に開閉でき（`OutsideTaskCallouts`のローカルstate、開閉状態はページを開いている間だけ保持） |

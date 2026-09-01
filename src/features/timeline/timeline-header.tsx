@@ -6,6 +6,7 @@ import { useUiStore } from "@/store/ui-store";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_WIDTH_PX } from "./constants";
 import { getDayBgColorClass, getDayTextColorClass, getWeekdayLabel } from "./date-utils";
+import { OutsideTaskCallouts } from "./outside-task-callouts";
 import { useTimelineDays } from "./timeline-context";
 
 interface MonthGroup {
@@ -38,8 +39,17 @@ function buildMonthGroups(days: Date[], startIndex: number, endIndex: number): M
  * 固定される（2軸固定、docs/spec.md §6）。
  */
 export function TimelineHeader() {
-  const { days, startIndex, endIndex, leadingWidth, trailingWidth, totalWidth, dayWidth, outsideDates } =
-    useTimelineDays();
+  const {
+    days,
+    startIndex,
+    endIndex,
+    leadingWidth,
+    trailingWidth,
+    totalWidth,
+    dayWidth,
+    outsideDates,
+    outsideTaskNotes,
+  } = useTimelineDays();
   const openDailyNote = useUiStore((s) => s.openDailyNote);
   const dailyNoteDate = useUiStore((s) => s.dailyNoteDate);
   const monthGroups = useMemo(
@@ -52,6 +62,15 @@ export function TimelineHeader() {
       className="sticky top-0 z-20 flex flex-col bg-background"
       style={{ width: SIDEBAR_WIDTH_PX + totalWidth }}
     >
+      <OutsideTaskCallouts
+        days={days}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        leadingWidth={leadingWidth}
+        trailingWidth={trailingWidth}
+        dayWidth={dayWidth}
+        outsideTaskNotes={outsideTaskNotes}
+      />
       <div className="flex items-stretch border-b">
         <div
           className="sticky left-0 z-20 shrink-0 border-r bg-background"

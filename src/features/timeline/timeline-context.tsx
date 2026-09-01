@@ -11,7 +11,9 @@ import {
 } from "react";
 import { observeElementOffset, useVirtualizer } from "@tanstack/react-virtual";
 import { isToday } from "date-fns";
+import type { OutsideTaskItem } from "@/features/daily-note/types";
 import { useOutsideDates } from "@/features/daily-note/use-outside-dates";
+import { useOutsideTaskNotes } from "@/features/daily-note/use-outside-task-notes";
 import { useUiStore } from "@/store/ui-store";
 import { DAY_SCALE_WIDTH_PX, DAY_WIDTH_PX, SIDEBAR_WIDTH_PX } from "./constants";
 import { getTimelineDays } from "./date-utils";
@@ -43,6 +45,11 @@ interface TimelineDaysContextValue {
    * この日はガントチャートの列を薄いグレーで塗りつぶす（date-utils.tsのgetDayBgColorClass参照）。
    */
   outsideDates: Set<string>;
+  /**
+   * outside専用タスク欄に1件以上項目がある日付→タスク一覧のMap。日付ヘッダー上の
+   * 折りたたみ可能な吹き出し（outside-task-callouts.tsx）に使う。
+   */
+  outsideTaskNotes: Map<string, OutsideTaskItem[]>;
 }
 
 const TimelineDaysContext = createContext<TimelineDaysContextValue | null>(null);
@@ -94,6 +101,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
 
   const totalWidth = days.length * dayWidth;
   const outsideDates = useOutsideDates();
+  const outsideTaskNotes = useOutsideTaskNotes();
 
   // virtualizerの戻り値はスクロールのたびに変わるためuseMemoでの恩恵は薄く、素直に毎レンダー計算する。
   let value: TimelineDaysContextValue;
@@ -107,6 +115,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
       totalWidth,
       dayWidth,
       outsideDates,
+      outsideTaskNotes,
     };
   } else {
     const virtualItems = virtualizer.getVirtualItems();
@@ -120,6 +129,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
         totalWidth,
         dayWidth,
         outsideDates,
+        outsideTaskNotes,
       };
     } else {
       const first = virtualItems[0];
@@ -133,6 +143,7 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
         totalWidth,
         dayWidth,
         outsideDates,
+        outsideTaskNotes,
       };
     }
   }

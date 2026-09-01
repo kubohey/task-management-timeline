@@ -13,8 +13,20 @@ export interface DailyNoteRecord {
   date: string;
   content: JSONContent;
   tags: string[];
+  outside_tasks: OutsideTaskItem[];
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * outside専用タスク欄（daily-note-sidebar.tsxのOutsideTaskList）の1項目。ノート本文
+ * （Tiptap）とは別にdaily_notes.outside_tasksへ配列で保存する。カレンダーの日付ヘッダー
+ * 上の吹き出し（outside-task-callouts.tsx）はこの一覧をそのまま表示する。
+ */
+export interface OutsideTaskItem {
+  id: string;
+  text: string;
+  checked: boolean;
 }
 
 /**
