@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { format, parseISO, startOfMonth, startOfYear } from "date-fns";
-import { Loader2Icon, SearchIcon, XIcon } from "lucide-react";
+import { Loader2Icon, MapPinIcon, SearchIcon, XIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { useUpdateGroup, useUpdateProject } from "@/features/hierarchy/use-hierarchy-mutations";
@@ -10,11 +10,15 @@ import { useUiStore } from "@/store/ui-store";
 import { useTaskSearch, type TaskSearchResult } from "./use-task-search";
 
 /**
- * カレンダーに登録済みのタスク（task_placements）をタスク名で検索するツールバー部品。
- * 結果を選択すると、そのタスクが属するGroup/Subgroup/Projectの折りたたみを解除し、
- * status絞り込みで隠れていれば解除したうえで、タイムラインを該当日へスクロールして
- * チップを一時ハイライトする。
+ * カレンダーに登録済みのタスク（task_placements）とoutside専用メモ（プロジェクト外の
+ * 予定欄）を、それぞれの本文テキストで検索するツールバー部品。
+ * - タスクの結果を選ぶと、そのタスクが属するGroup/Subgroup/Projectの折りたたみを解除し、
+ *   status絞り込みで隠れていれば解除したうえで、タイムラインを該当日へスクロールして
+ *   チップを一時ハイライトする。
+ * - outsideメモの結果を選ぶと、タイムラインを該当日へスクロールしたうえでその日の
+ *   デイリーノートサイドバーを開く（outside専用欄はそこでしか編集できないため）。
  * ユーザー要望：「カレンダーに登録しているタスクの検索機能がほしい」
+ * 「outsideに入力したタスクも検索できるようにして。今はプロジェクトしか検索できない」
  */
 export function TaskSearchBar() {
   const [query, setQuery] = useState("");
@@ -29,6 +33,7 @@ export function TaskSearchBar() {
   const highlightPlacement = useUiStore((s) => s.highlightPlacement);
   const hiddenPhaseStatuses = useUiStore((s) => s.hiddenPhaseStatuses);
   const togglePhaseStatusFilter = useUiStore((s) => s.togglePhaseStatusFilter);
+  const openDailyNote = useUiStore((s) => s.openDailyNote);
 
   // 折りたたみ解除・status絞り込み解除の判定用（groups/projects/phasesはuseTaskSearch内で
   // hierarchy側と同じqueryKeyのキャッシュを共有しているため、ここでの参照は追加取得を伴わない）。
@@ -52,7 +57,28 @@ export function TaskSearchBar() {
     }
   };
 
+  /** スケール別のタイムライン基準日の合わせ方（timeline-toolbar.tsxのgoToday/changeScaleと同じ計算）。 */
+  const jumpTimelineTo = (dateStr: string) => {
+    const target = parseISO(dateStr);
+    if (scale === "year") {
+      setTimelineAnchorDate(startOfYear(target));
+    } else if (scale === "day") {
+      setTimelineAnchorDate(target);
+    } else {
+      setTimelineAnchorDate(startOfMonth(target));
+    }
+    requestScrollToDate(dateStr);
+  };
+
   const jumpTo = (result: TaskSearchResult) => {
+    if (result.kind === "outside") {
+      jumpTimelineTo(result.date);
+      openDailyNote(result.date);
+      setOpen(false);
+      inputRef.current?.blur();
+      return;
+    }
+
     for (const groupId of result.ancestorGroupIds) {
       if (groupById.get(groupId)?.is_collapsed) {
         updateGroup.mutate({ id: groupId, patch: { is_collapsed: false } });
@@ -66,17 +92,7 @@ export function TaskSearchBar() {
       togglePhaseStatusFilter(statusKey);
     }
 
-    // タイムラインの表示範囲を対象日が含まれるよう合わせる
-    // （timeline-toolbar.tsxのgoToday/changeScaleと同じスケール別の計算）。
-    const target = parseISO(result.startDate);
-    if (scale === "year") {
-      setTimelineAnchorDate(startOfYear(target));
-    } else if (scale === "day") {
-      setTimelineAnchorDate(target);
-    } else {
-      setTimelineAnchorDate(startOfMonth(target));
-    }
-    requestScrollToDate(result.startDate);
+    jumpTimelineTo(result.startDate);
     highlightPlacement(result.placementId);
 
     setOpen(false);
@@ -135,24 +151,38 @@ export function TaskSearchBar() {
         ) : (
           <ul className="flex flex-col">
             {results.map((r) => (
-              <li key={r.placementId}>
+              <li key={r.kind === "task" ? r.placementId : `outside:${r.date}`}>
                 <button
                   type="button"
                   className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
                   onClick={() => jumpTo(r)}
                 >
-                  <span className="flex items-center gap-1.5 font-medium">
-                    {r.projectColor && (
-                      <span
-                        className="size-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: r.projectColor }}
-                      />
-                    )}
-                    <span className="truncate">{r.taskName}</span>
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {r.groupPath} / {r.phaseName} ・ {format(parseISO(r.startDate), "yyyy/M/d")}
-                  </span>
+                  {r.kind === "task" ? (
+                    <>
+                      <span className="flex items-center gap-1.5 font-medium">
+                        {r.projectColor && (
+                          <span
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: r.projectColor }}
+                          />
+                        )}
+                        <span className="truncate">{r.taskName}</span>
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {r.groupPath} / {r.phaseName} ・ {format(parseISO(r.startDate), "yyyy/M/d")}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <MapPinIcon className="size-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{r.snippet}</span>
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        Outside ・ {format(parseISO(r.date), "yyyy/M/d")}
+                      </span>
+                    </>
+                  )}
                 </button>
               </li>
             ))}

@@ -2,11 +2,14 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { fetchOutsideContentNotes } from "@/features/daily-note/api";
+import { toPreviewLines } from "@/features/daily-note/task-list-doc";
 import { fetchGroups, fetchPhases, fetchProjects } from "@/features/hierarchy/api";
 import { useRealtimeTable } from "@/lib/supabase/use-realtime-table";
 import { fetchAllTaskNames, fetchAllTaskPlacementsForSearch } from "./api";
 
-export interface TaskSearchResult {
+export interface TaskSearchMatch {
+  kind: "task";
   placementId: string;
   sourceRowId: string;
   startDate: string;
@@ -22,16 +25,28 @@ export interface TaskSearchResult {
   ancestorGroupIds: string[];
 }
 
+export interface OutsideNoteMatch {
+  kind: "outside";
+  date: string;
+  /** 一致した行（複数一致した場合は先頭の1行）。結果一覧のプレビュー表示用。 */
+  snippet: string;
+}
+
+export type TaskSearchResult = TaskSearchMatch | OutsideNoteMatch;
+
 /**
- * カレンダーに登録済みのタスク（task_placements）をタスク名で検索する。
- * groups/projects/phasesはhierarchy側（useHierarchyData）と同じqueryKeyで共有
- * キャッシュを使い、二重取得を避ける。task_placements/table_cellsは検索専用に
- * Phase横断で一括取得する（通常の表示は常にPhase単位のためこのキャッシュは別）。
+ * カレンダーに登録済みのタスク（task_placements）とoutside専用メモ（daily_notes.
+ * outside_content、プロジェクト外の予定欄）を、それぞれの本文テキストで横断検索する。
+ * groups/projects/phases・outsideメモはhierarchy/daily-note側の各フックと同じqueryKeyで
+ * キャッシュを共有し、二重取得を避ける。task_placements/table_cellsは検索専用にPhase横断で
+ * 一括取得する（通常の表示は常にPhase単位のためこのキャッシュは別）。
  * ユーザー要望：「カレンダーに登録しているタスクの検索機能がほしい」
+ * 「outsideに入力したタスクも検索できるようにして。今はプロジェクトしか検索できない」
  */
 export function useTaskSearch(query: string) {
   useRealtimeTable("task_placements", ["searchTaskPlacements"]);
   useRealtimeTable("table_cells", ["searchTaskNames"]);
+  useRealtimeTable("daily_notes", ["outsideContentNotes"]);
 
   const placementsQuery = useQuery({
     queryKey: ["searchTaskPlacements"],
@@ -44,13 +59,18 @@ export function useTaskSearch(query: string) {
   const groupsQuery = useQuery({ queryKey: ["groups"], queryFn: fetchGroups });
   const projectsQuery = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
   const phasesQuery = useQuery({ queryKey: ["phases"], queryFn: fetchPhases });
+  const outsideNotesQuery = useQuery({
+    queryKey: ["outsideContentNotes"],
+    queryFn: fetchOutsideContentNotes,
+  });
 
   const isLoading =
     placementsQuery.isLoading ||
     taskNamesQuery.isLoading ||
     groupsQuery.isLoading ||
     projectsQuery.isLoading ||
-    phasesQuery.isLoading;
+    phasesQuery.isLoading ||
+    outsideNotesQuery.isLoading;
 
   const results = useMemo<TaskSearchResult[]>(() => {
     const trimmed = query.trim();
@@ -92,6 +112,7 @@ export function useTaskSearch(query: string) {
       pathParts.push(project.name);
 
       out.push({
+        kind: "task",
         placementId: placement.id,
         sourceRowId: placement.source_row_id,
         startDate: placement.start_date,
@@ -105,7 +126,21 @@ export function useTaskSearch(query: string) {
         ancestorGroupIds,
       });
     }
-    out.sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+    for (const note of outsideNotesQuery.data ?? []) {
+      const lines = toPreviewLines(note.content);
+      const matchedLine = lines.find((line) => line.text.toLowerCase().includes(lower));
+      if (!matchedLine) {
+        continue;
+      }
+      out.push({ kind: "outside", date: note.date, snippet: matchedLine.text });
+    }
+
+    out.sort((a, b) => {
+      const dateA = a.kind === "task" ? a.startDate : a.date;
+      const dateB = b.kind === "task" ? b.startDate : b.date;
+      return dateA.localeCompare(dateB);
+    });
     return out;
   }, [
     query,
@@ -114,6 +149,7 @@ export function useTaskSearch(query: string) {
     groupsQuery.data,
     projectsQuery.data,
     phasesQuery.data,
+    outsideNotesQuery.data,
   ]);
 
   return {

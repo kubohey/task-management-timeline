@@ -1,5 +1,6 @@
 import type { JSONContent } from "@tiptap/react";
 import { emptyDoc } from "@/features/phase-table/types";
+import { docToMarkdown } from "./obsidian-export";
 import type { DailyTaskProjectGroup } from "./types";
 
 function textContent(text: string): JSONContent[] {
@@ -64,4 +65,30 @@ export function buildDailyTaskListDoc(projects: DailyTaskProjectGroup[]): JSONCo
 export function isBlankDoc(doc: JSONContent): boolean {
   const content = doc.content ?? [];
   return content.every((node) => node.type === "paragraph" && !node.content?.length);
+}
+
+export interface PreviewLine {
+  text: string;
+  checked?: boolean;
+}
+
+/**
+ * 自由記述メモ（Tiptap doc）を、簡潔な行リストへ変換する。既存のMarkdown変換
+ * （docToMarkdown）を再利用し、行頭の記法（`- `, `- [ ] `, `#`, `1. `等）だけ取り除いて
+ * プレーンな箇条書き表示にする。outside吹き出し（timeline/outside-task-callouts.tsx）と
+ * タスク検索の結果プレビュー（search/use-task-search.ts）の両方で使う共通ヘルパー。
+ */
+export function toPreviewLines(doc: JSONContent): PreviewLine[] {
+  return docToMarkdown(doc)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const taskMatch = line.match(/^-\s\[([ x])\]\s(.*)$/);
+      if (taskMatch) {
+        return { text: taskMatch[2], checked: taskMatch[1] === "x" };
+      }
+      const match = line.match(/^(?:-|\d+\.|#+)\s(.*)$/);
+      return { text: match ? match[1] : line };
+    });
 }

@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import type { JSONContent } from "@tiptap/react";
 import { format } from "date-fns";
 import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon } from "lucide-react";
-import { docToMarkdown } from "@/features/daily-note/obsidian-export";
+import { toPreviewLines, type PreviewLine } from "@/features/daily-note/task-list-doc";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_WIDTH_PX } from "./constants";
@@ -18,11 +18,6 @@ interface OutsideTaskCalloutsProps {
   trailingWidth: number;
   dayWidth: number;
   outsideContentNotes: Map<string, JSONContent>;
-}
-
-interface PreviewLine {
-  text: string;
-  checked?: boolean;
 }
 
 interface RawEntry {
@@ -46,27 +41,6 @@ const COLLAPSED_WIDTH_PX = 104;
 const GAP_PX = 8;
 /** 最下段の吹き出しから日付ヘッダーまでのテール（縦線）の長さ。 */
 const TAIL_PX = 8;
-
-/**
- * outside専用メモ（Tiptap doc）を、吹き出しに収まる簡潔な行リストへ変換する。
- * 既存のMarkdown変換（docToMarkdown）を再利用し、行頭の記法（`- `, `- [ ] `, `#`, `1. `等）
- * だけ取り除いてプレーンな箇条書き表示にする（吹き出しは要約表示のため、太字等の装飾記法は
- * そのまま残しても崩れないので変換しない）。
- */
-function toPreviewLines(doc: JSONContent): PreviewLine[] {
-  return docToMarkdown(doc)
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const taskMatch = line.match(/^-\s\[([ x])\]\s(.*)$/);
-      if (taskMatch) {
-        return { text: taskMatch[2], checked: taskMatch[1] === "x" };
-      }
-      const match = line.match(/^(?:-|\d+\.|#+)\s(.*)$/);
-      return { text: match ? match[1] : line };
-    });
-}
 
 /**
  * 連日outside予定がある場合に吹き出し同士が重ならないよう、日付順に貪欲法で「段」を割り当てる
