@@ -11,7 +11,7 @@ import {
 } from "react";
 import type { JSONContent } from "@tiptap/react";
 import { observeElementOffset, useVirtualizer } from "@tanstack/react-virtual";
-import { isToday } from "date-fns";
+import { format, isToday } from "date-fns";
 import { useOutsideContentNotes } from "@/features/daily-note/use-outside-content-notes";
 import { useOutsideDates } from "@/features/daily-note/use-outside-dates";
 import { useUiStore } from "@/store/ui-store";
@@ -148,20 +148,27 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
     }
   }
 
-  // 初回表示時・スケール切替時・「今日」ボタン押下時（scrollToTodaySignalの変化）に、
-  // 今日の日付がカレンダー表示領域のちょうど真ん中あたりに来るようスクロール位置を調整する。
-  // 通常のprev/next移動ではこの信号は変化しないため、意図せず今日へ引き戻されることはない。
+  // 初回表示時・スケール切替時・「今日」ボタン押下時・タスク検索結果の選択時
+  // （scrollToTodaySignalの変化）に、対象日（scrollTargetDate、未指定なら今日）が
+  // カレンダー表示領域のちょうど真ん中あたりに来るようスクロール位置を調整する。
+  // 通常のprev/next移動ではこの信号は変化しないため、意図せず引き戻されることはない。
   const scrollToTodaySignal = useUiStore((s) => s.scrollToTodaySignal);
+  const scrollTargetDate = useUiStore((s) => s.scrollTargetDate);
   const daysRef = useRef(days);
   daysRef.current = days;
+  const scrollTargetDateRef = useRef(scrollTargetDate);
+  scrollTargetDateRef.current = scrollTargetDate;
 
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) {
       return;
     }
-    const todayIndex = daysRef.current.findIndex((d) => isToday(d));
-    if (todayIndex === -1) {
+    const target = scrollTargetDateRef.current;
+    const targetIndex = target
+      ? daysRef.current.findIndex((d) => format(d, "yyyy-MM-dd") === target)
+      : daysRef.current.findIndex((d) => isToday(d));
+    if (targetIndex === -1) {
       return;
     }
     // scrollLeftは実際の画面ピクセル（zoom適用後）で動くが、dayWidth/SIDEBAR_WIDTH_PXは
@@ -173,8 +180,8 @@ export function TimelineDaysProvider({ children, scrollContainerRef }: TimelineD
     if (visibleCalendarWidth <= 0) {
       return;
     }
-    const todayCenterPos = (todayIndex * dayWidth + dayWidth / 2) * zoomFactor;
-    const targetScrollLeft = todayCenterPos - visibleCalendarWidth / 2;
+    const targetCenterPos = (targetIndex * dayWidth + dayWidth / 2) * zoomFactor;
+    const targetScrollLeft = targetCenterPos - visibleCalendarWidth / 2;
     const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
     container.scrollLeft = Math.min(Math.max(0, targetScrollLeft), maxScrollLeft);
     // daysはdaysRef経由で最新値を参照するため依存配列には含めない（含めるとprev/next移動のたびに発火してしまう）。

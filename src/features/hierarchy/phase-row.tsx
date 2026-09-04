@@ -211,6 +211,7 @@ export function PhaseRow({
           <Popover open={tableOpen} onOpenChange={setTableOpen}>
           <PopoverAnchor asChild>
           <div
+            id={`phase-row-${phase.id}`}
             className="sticky left-0 z-10 flex shrink-0 items-center gap-2 border border-transparent bg-background px-2 py-1.5 hover:border-border"
             style={{ width: SIDEBAR_WIDTH_PX, paddingLeft: depth * INDENT_STEP_PX + 8 }}
           >
