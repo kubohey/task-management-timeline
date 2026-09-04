@@ -16,6 +16,7 @@ import type {
 import { getDayBgColorClass } from "@/features/timeline/date-utils";
 import { useTimelineDays } from "@/features/timeline/timeline-context";
 import { cn } from "@/lib/utils";
+import { useUiStore } from "@/store/ui-store";
 import { assignLanes, CHIP_LANE_GAP_PX, CHIP_LANE_HEIGHT_PX } from "./lanes";
 import { PlacementChip } from "./placement-chip";
 import { useCreatePlacementWithNewRow } from "./use-task-placement-mutations";
@@ -129,6 +130,8 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
   const { days, startIndex, endIndex, leadingWidth, trailingWidth, dayWidth, outsideDates } =
     useTimelineDays();
   const { placements } = useTaskPlacements(phaseId);
+  // タスク検索でジャンプした直後のタスクチップを一時ハイライトする（task-search-bar.tsx参照）。
+  const highlightedPlacementId = useUiStore((s) => s.highlightedPlacementId);
 
   const taskNameColumnId = columns.find((c) => c.key === "task_name")?.id;
   const noteColumnId = columns.find((c) => c.key === "note")?.id;
@@ -184,6 +187,7 @@ export function PhaseTimelineCells({ phaseId, columns, rows, chipColor }: PhaseT
             laneCount={laneCount}
             label={label}
             color={chipColor}
+            highlighted={placement.id === highlightedPlacementId}
             noteColumnId={noteColumnId}
             subtaskColumnId={subtaskColumnId}
             noteValue={

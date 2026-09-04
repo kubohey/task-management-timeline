@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Maximize2Icon, Minimize2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DailyNoteSidebar } from "@/features/daily-note/daily-note-sidebar";
+import { TaskSearchBar } from "@/features/search/task-search-bar";
 import { InlineCreateButton } from "@/features/shared/inline-create-button";
 import { useUniformLabelWidth } from "@/features/shared/use-max-text-width";
 import { toggleFullscreen, useFullscreenSync } from "@/features/shared/use-fullscreen";
@@ -131,6 +132,7 @@ export function HierarchyTree({ userId }: HierarchyTreeProps) {
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-4">
+              <TaskSearchBar />
               <TimelineToolbar />
               <ZoomControl value={ganttZoomPercent} onChange={setGanttZoomPercent} />
               <div className="flex items-center gap-1 text-sm">

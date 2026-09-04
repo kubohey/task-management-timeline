@@ -25,6 +25,8 @@ interface PlacementChipProps {
   label: string;
   /** このPhaseが属するProjectの色。未設定の場合は既定のプライマリカラーを使う。 */
   color: string | null;
+  /** タスク検索でジャンプした直後だけtrue。数秒間リングを点滅させて位置を知らせる。 */
+  highlighted?: boolean;
   noteColumnId?: string;
   subtaskColumnId?: string;
   noteValue?: NoteRichCellValue;
@@ -50,6 +52,7 @@ export function PlacementChip({
   laneCount,
   label,
   color,
+  highlighted,
   noteColumnId,
   subtaskColumnId,
   noteValue,
@@ -196,6 +199,7 @@ export function PlacementChip({
               // 同じ日に複数タスクがある（laneCount>=2）ときは自分のレーン分だけの高さで縦積みする。
               laneCount <= 1 && "top-0.5 bottom-0.5",
               color ? "text-foreground" : "bg-primary text-primary-foreground",
+              highlighted && "ring-2 ring-yellow-400 ring-offset-1 animate-pulse",
             )}
             style={{
               left: previewDayIndex * dayWidth,

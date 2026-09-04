@@ -49,11 +49,23 @@ interface UiState {
   /** タイムラインに表示する基準日（月表示ではこの日を含む月を表示、日表示では基準日を中心とした2週間、年表示ではこの日を含む年）。 */
   timelineAnchorDate: Date;
   /**
-   * インクリメントするたびに「今日の日付を画面中央あたりまでスクロールする」処理を
+   * インクリメントするたびに「対象日を画面中央あたりまでスクロールする」処理を
    * 発火させるための信号。スクロール処理自体はtimeline-context.tsx側で行う。
-   * 通常のprev/next移動では発火させず、初回表示・スケール切替・「今日」ボタンでのみ発火する。
+   * 通常のprev/next移動では発火させず、初回表示・スケール切替・「今日」ボタン・
+   * タスク検索結果の選択でのみ発火する。
    */
   scrollToTodaySignal: number;
+  /**
+   * scrollToTodaySignal発火時にスクロール先とする日付（"yyyy-MM-dd"）。nullなら
+   * 従来どおり「今日」を対象にする。タスク検索でジャンプする際に設定する
+   * （ユーザー要望：「カレンダーに登録しているタスクの検索機能がほしい」）。
+   */
+  scrollTargetDate: string | null;
+  /**
+   * タスク検索でジャンプした直後、該当のタスクチップを一時的にハイライトするためのid。
+   * 一定時間後に自動でnullへ戻る。
+   */
+  highlightedPlacementId: string | null;
   /** デイリータスクノート（右サイドバー）で開いている日付（"yyyy-MM-dd"）。nullで非表示。 */
   dailyNoteDate: string | null;
   /** デイリータスクノートのサイドバー幅（px）。ウィンドウ幅調整と同様、ドラッグで可変。 */
@@ -84,6 +96,10 @@ interface UiState {
   togglePhaseStatusFilter: (key: PhaseStatusFilterKey) => void;
   setTimelineAnchorDate: (date: Date) => void;
   requestScrollToToday: () => void;
+  /** 指定日（"yyyy-MM-dd"）を画面中央あたりまでスクロールする。タスク検索結果の選択用。 */
+  requestScrollToDate: (date: string) => void;
+  /** タスクチップを一定時間ハイライトする。タスク検索結果の選択用。 */
+  highlightPlacement: (placementId: string) => void;
   openDailyNote: (date: string) => void;
   closeDailyNote: () => void;
   setDailyNoteWidth: (width: number) => void;
@@ -117,6 +133,8 @@ export const useUiStore = create<UiState>()(
       hiddenPhaseStatuses: [],
       timelineAnchorDate: startOfMonth(new Date()),
       scrollToTodaySignal: 0,
+      scrollTargetDate: null,
+      highlightedPlacementId: null,
       dailyNoteDate: null,
       dailyNoteWidth: DAILY_NOTE_DEFAULT_WIDTH_PX,
       ganttZoomPercent: 100,
@@ -136,7 +154,17 @@ export const useUiStore = create<UiState>()(
         })),
       setTimelineAnchorDate: (timelineAnchorDate) => set({ timelineAnchorDate }),
       requestScrollToToday: () =>
-        set((state) => ({ scrollToTodaySignal: state.scrollToTodaySignal + 1 })),
+        set((state) => ({ scrollToTodaySignal: state.scrollToTodaySignal + 1, scrollTargetDate: null })),
+      requestScrollToDate: (date) =>
+        set((state) => ({ scrollToTodaySignal: state.scrollToTodaySignal + 1, scrollTargetDate: date })),
+      highlightPlacement: (placementId) => {
+        set({ highlightedPlacementId: placementId });
+        setTimeout(() => {
+          set((state) =>
+            state.highlightedPlacementId === placementId ? { highlightedPlacementId: null } : {},
+          );
+        }, 2500);
+      },
       openDailyNote: (date) => set({ dailyNoteDate: date }),
       closeDailyNote: () => set({ dailyNoteDate: null }),
       setDailyNoteWidth: (width) =>
